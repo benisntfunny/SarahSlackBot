@@ -39,3 +39,5 @@ Acts as a Slack Bot and Custom SFMC Content Block backend service. Runs in AWS u
   DEFAULT_APP_ID=<Default ID used to store history table of image results generated from slack. This can be anything>
   DEFAULT_IMAGE_SIZE=<Square image size from OpenAI. EX: 512x512>
   ```
+- Service is designed to work with Slack and a supporting Angular App (TODO: Upload angular app 😎) that runs locally on port 4200 using localhost local.dev as an https end point with mkcert
+  - mkcert: https://github.com/FiloSottile/mkcert
