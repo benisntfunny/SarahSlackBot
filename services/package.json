@@ -1,7 +1,6 @@
 {
   "name": "@sarah-bot/services",
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "deploy": "npx sst deploy --stage prod"
   },

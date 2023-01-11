@@ -1,4 +1,18 @@
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
-  "include": ["stacks"]
+  
+  "include": ["stacks"],
+  "exclude": ["node_modules", "**/*.test.js"],
+  "compilerOptions": {
+    "declaration": true,
+    "module": "es2020",
+    "sourceMap": true,
+    "incremental": true,
+    "allowJs": true,
+    "removeComments": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "preserveConstEnums": true,
+    "esModuleInterop": true,"declarationDir": "dist/types"
+
+  }
 }

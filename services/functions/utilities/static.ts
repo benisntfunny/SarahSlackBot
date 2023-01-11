@@ -267,4 +267,6 @@ export const ENV: any = {
   sarah_authorized_teams: process.env.sarah_authorized_teams || "",
   default_image_size: process.env.default_image_size || "512x512",
   default_app_id: process.env.default_app_id || "SARAH-APP",
+  teams_app_id: process.env.teams_app_id || "",
+  teams_app_password: process.env.teams_app_password || "",
 };

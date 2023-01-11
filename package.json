@@ -2,10 +2,11 @@
   "name": "sarah-bot",
   "version": "0.0.0",
   "private": true,
+  "main": "./build/lib/index.js",
   "scripts": {
-    "start": "node ./build-env.js && sst start",
-    "build": "node ./build-env.js && sst build",
-    "deploy": "node ./build-env.js && sst deploy",
+    "start": "node ./build-env.js && sst start --input-type=commonjs",
+    "build": "node ./build-env.js && sst build --input-type=commonjs",
+    "deploy": "node ./build-env.js && sst deploy --input-type=commonjs",
     "remove": "sst remove",
     "console": "sst console",
     "typecheck": "tsc --noEmit"
@@ -14,7 +15,12 @@
     "@serverless-stack/cli": "^1.8.2",
     "@serverless-stack/resources": "^1.8.2",
     "@tsconfig/node16": "^1.0.3",
+    "@types/restify": "^8.5.5",
     "aws-cdk-lib": "2.32.0",
+    "nodemon": "^2.0.7",
+    "serverless-bundle": "^5.5.0",
+    "shx": "^0.3.4",
+    "ts-node": "^10.4.0",
     "typescript": "^4.7.4",
     "vitest": "^0.22.1"
   },
@@ -22,10 +28,13 @@
     "services"
   ],
   "dependencies": {
+    "@microsoft/teamsfx": "^2.1.0",
     "aws-sdk": "^2.1199.0",
     "axios": "^0.27.2",
+    "botbuilder": "^4.18.0",
     "dotenv": "^16.0.3",
     "node-cloud-vision-api": "^0.2.0",
-    "openai": "^3.0.0"
+    "openai": "^3.0.0",
+    "restify": "^10.0.0"
   }
 }
