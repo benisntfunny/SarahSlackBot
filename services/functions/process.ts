@@ -8,11 +8,14 @@ import {
   replaceImage,
   swapOutIds,
   respondToMessage,
+  sendBlock,
+  sendSettingsBlock,
+  userLookup,
 } from "./utilities/slack";
-import { dalleS3, GPT } from "./utilities/openai";
+import { dalleS3, GPT, buildSettingsText } from "./utilities/openai";
 import { dalleToMC } from "./utilities/sfmc";
-import { success } from "./utilities/responses";
-import { ENV, SLACK_ACTION_TYPES } from "./utilities/static";
+import { successPlain } from "./utilities/responses";
+import { ENV, SLACK_ACTION_TYPES, SLACK_TYPES } from "./utilities/static";
 import { addPeriod } from "./utilities/text";
 import {
   getNewRecord,
@@ -26,17 +29,38 @@ export const handler = async (event: any) => {
     const { Records } = event;
     const newImages: any = getNewRecord(Records);
     const incoming = newImages[0];
-    if (incoming?.type === "message" && incoming.payload) {
+    // Check if we are looking at a message or a reply
+    if (incoming?.type === SLACK_TYPES.new_message && incoming.payload) {
       const payload: any = incoming.payload;
       let text = await swapOutIds(addPeriod(sarahRemover(payload.event.text)));
+      const settings = await readItemFromDynamoDB(ENV.settings, {
+        clientId: payload.event.user,
+        type: "botSettings",
+      });
+      const userName = await userLookup(payload.event.user);
+      const settingsText = await buildSettingsText(settings);
+      const instruction = `${settingsText}. My name is ${userName}. You, the assistant, is named Sarah. Do not mention or allude to being an AI Model`;
 
       if (text.trim().indexOf("+") !== 0) {
-        const response = await GPT(text);
+        const response = await GPT([
+          {
+            role: "system",
+            content: instruction,
+          },
+          { role: "user", content: text },
+        ]);
 
         await writeToDynamoDB(ENV.outgoingTable, {
           referenceId: payload.event.event_ts,
           time: Date.now(),
-          history: [text, response],
+          history: [
+            {
+              role: "system",
+              content: instruction,
+            },
+            { role: "user", content: text },
+            { role: "assistant", content: response },
+          ],
         });
         await sendMessage(
           payload.event.channel,
@@ -45,6 +69,7 @@ export const handler = async (event: any) => {
         );
       } else {
         text = text.replace("+", "").trim();
+        // get the image from dalle
         const response = (
           await dalleS3(
             await swapOutIds(text),
@@ -52,6 +77,7 @@ export const handler = async (event: any) => {
             ENV.default_image_size
           )
         ).url;
+        // send the image to slack
         await sendImageWithButtons(
           payload.event.channel,
           payload.event.event_ts,
@@ -59,46 +85,60 @@ export const handler = async (event: any) => {
           response
         );
       }
-    }
-    if (incoming?.type === "reply" && incoming.payload) {
+    } else if (incoming?.type === SLACK_TYPES.reply && incoming.payload) {
       const payload: any = incoming.payload;
       const item: any = await readItemFromDynamoDB(ENV.outgoingTable, {
         referenceId: incoming.referenceId,
       });
       let history: any = item.history;
-      const text =
-        history.join("\n") +
-        "\n\n" +
-        (await swapOutIds(addPeriod(sarahRemover(payload.event.text))));
+      const text = await swapOutIds(
+        addPeriod(sarahRemover(payload.event.text))
+      );
 
-      if (text.length / 1000 >= 4) {
+      history.push({ role: "user", content: text });
+
+      /*if (text.length / 1000 >= 4) {
         await sendMessage(payload.event.channel, payload.event.event_ts, "...");
         return;
       } else {
-        const response = await GPT(text);
-        history.push("\n\n" + addPeriod(sarahRemover(payload.event.text)));
-        history.push(response);
+        */
+      const response = await GPT(history);
+      history.push({ role: "assistant", content: response });
 
-        await writeToDynamoDB(ENV.outgoingTable, {
-          referenceId: incoming.referenceId,
-          history,
-        });
-        await sendMessage(
-          payload.event.channel,
-          payload.event.event_ts,
-          response
-        );
-      }
-    }
-    if (incoming.command === "/write") {
-      const text = incoming.text.replace(/@/g, "");
-      const response = await GPT(await swapOutIds(text));
+      await writeToDynamoDB(ENV.outgoingTable, {
+        referenceId: incoming.referenceId,
+        history,
+      });
+      await sendMessage(
+        payload.event.channel,
+        payload.event.event_ts,
+        response
+      );
+    } else if (incoming.command === "/write") {
+      let text = await swapOutIds(
+        addPeriod(sarahRemover(incoming.text.replace(/@/g, "")))
+      );
+      const settings = await readItemFromDynamoDB(ENV.settings, {
+        clientId: incoming.user_id,
+        type: "botSettings",
+      });
+
+      const userName = await userLookup(incoming.user_id);
+      const settingsText = await buildSettingsText(settings);
+      const instruction = `${settingsText}. My name is ${userName}. You, the assistant, is named Sarah. Do not mention or allude to being an AI Model`;
+
+      const response = await GPT([
+        {
+          role: "system",
+          content: instruction,
+        },
+        { role: "user", content: text },
+      ]);
       await respondToMessage(
         incoming.response_url,
-        `<@${incoming.user_id}>\n${incoming.text}\n<@${sarahId}>${response}`
+        `<@${incoming.user_id}>\n\n${incoming.text}\n<@${sarahId}>${response}`
       );
-    }
-    if (incoming.command === "/image") {
+    } else if (incoming.command === "/image") {
       const text = incoming.text.replace(/@/g, "");
 
       const response = (
@@ -122,8 +162,14 @@ export const handler = async (event: any) => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-    }
-    if (incoming.type === SLACK_ACTION_TYPES.addToSFMC) {
+    } else if (incoming.command === "/settings") {
+      const userSettings = await readItemFromDynamoDB(ENV.settings, {
+        clientId: incoming.user_id,
+        type: "botSettings",
+      });
+      await sendSettingsBlock(incoming.response_url, userSettings);
+      //sendBlock(incoming.response_url, );
+    } else if (incoming.type === SLACK_ACTION_TYPES.addToSFMC) {
       const image: any = await dalleToMC(
         incoming.payload.original_message.attachments[0].image_url,
         incoming.payload.original_message.attachments[0].text.replace(
@@ -137,15 +183,40 @@ export const handler = async (event: any) => {
         incoming.payload.original_message.text,
         incoming.payload.original_message.attachments[0].image_url
       );
-      await sendMessage(
+      const blocks = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "Image added to SFMC",
+          },
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "section",
+          accessory: {
+            type: "image",
+            image_url:
+              incoming.payload.original_message.attachments[0].image_url,
+            alt_text: `${image.name}`,
+          },
+          text: {
+            type: "mrkdwn",
+            text: `:abc:: ${image.name}\n\n:globe_with_meridians:: ${
+              image.fileProperties.publishedURL
+            }${image.tags ? `\n:label:: ${image.tags.join(", ")}` : ""}`,
+          },
+        },
+      ];
+      console.log(JSON.stringify(blocks));
+      await sendBlock(
         incoming.payload.channel.id,
         incoming.payload.original_message.thread_ts,
-        `*Image added to SFMC*\n*Name:* ${image.name}\n\n*URL*: ${
-          image.fileProperties.publishedURL
-        }${image.tags ? `\n*Tags: ${image.tags.join(", ")}*` : ""}`
+        blocks
       );
-    }
-    if (incoming.type === SLACK_ACTION_TYPES.noToSFMC) {
+    } else if (incoming.type === SLACK_ACTION_TYPES.noToSFMC) {
       await replaceImage(
         incoming.payload.channel.id,
         incoming.payload.message_ts,
@@ -162,5 +233,5 @@ export const handler = async (event: any) => {
     console.error(err);
   }
 
-  return success({});
+  return successPlain();
 };

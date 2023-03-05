@@ -34,13 +34,15 @@ function buildTagsFromAnalysis(analysis: any) {
   let tags: string[] = [];
   //add the dominant colors to the tags
   if (analysis?.color) {
-    tags = analysis.color.dominantColors;
+    tags = analysis.color.dominantColors.map((color: string) =>
+      color.toLowerCase()
+    );
   }
   //add the objects to the tags
   if (analysis?.objects && analysis.objects.length > 0) {
     analysis.objects.forEach((obj: any) => {
       if (tags.indexOf(obj.object) === -1) {
-        tags.push(obj.object);
+        tags.push(obj.object.toLowerCase());
       }
     });
   }
@@ -88,6 +90,21 @@ function checkNewName(error: any) {
   //some other error or more than one validation error that we don't know how to handle
   return undefined;
 }
+/**
+ * categoryListing
+ * @description Gets a list of assets in a category
+ * @param category: string
+ * @param page: number
+ * @returns any[]
+ */
+export async function tagSearch(tag: string = "", page: number = 1) {
+  return await callMC(
+    "get",
+    `${SFMC_URLS.assets}?$filter=Tags=${tag}&pagesize=250&page=${page}`,
+    null
+  );
+}
+
 /**
  * categoryListing
  * @description Gets a list of assets in a category
@@ -220,7 +237,7 @@ async function getSFMCToken() {
     //check if the token is expired
     const expired = token ? isTokenValid(token.expireDate) : true;
     //if the token is expired or doesn't exist, get a new one
-    if (expired) {
+    if (!expired) {
       return token.accessToken;
     } else {
       const url = SFMC_URLS.auth;

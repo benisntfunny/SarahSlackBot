@@ -13,7 +13,6 @@ export async function azureRecognition(url: string) {
 
   try {
     const response = await axios.post(uriBase, { url }, { headers });
-    //console.log(JSON.stringify(response.data));
     analysis = {
       color: response?.data?.color,
       imageProperties: response?.data?.metadata,

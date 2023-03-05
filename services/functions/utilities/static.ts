@@ -216,35 +216,50 @@ export const SFMC_MEDIA_TYPES: any = {
   jsonmessage: { id: 230 },
   icemailformblock: { id: 232 },
 };
-export const HTTPS_CODES: any = {
+export const SLACK_TYPES: { [key: string]: string } = {
+  message: "message",
+  reply: "reply",
+  im: "im",
+  app_mention: "app_mention",
+  new_message: "new_message",
+  nothing: "nothing",
+};
+export const HTTPS_CODES: { [key: string]: number } = {
   success: 200,
   failure: 500,
   authorized: 401,
   badRequest: 400,
 };
-export const SFMC_URLS: any = {
+export const SFMC_URLS: { [key: string]: string } = {
   auth: `https://${process.env.sfmc_subdomain}.auth.marketingcloudapis.com/v2/token`,
   tags: "/hub/v1/objects/media/tags/",
   assets: "/asset/v1/content/assets",
   base: `https://${process.env.sfmc_subdomain}.rest.marketingcloudapis.com`,
 };
-export const AUTH_URLS: any = {
+export const AUTH_URLS: { [key: string]: string } = {
   local1: "https://local.dev:4200",
   local2: "http://localhost:4200",
 };
-export const SLACK_URLS: any = {
+export const SLACK_URLS: { [key: string]: string } = {
   postMessage: "https://slack.com/api/chat.postMessage",
   update: "https://slack.com/api/chat.update",
   getUser: "https://slack.com/api/users.info?user=",
 };
-export const SLACK_ACTION_TYPES: any = {
+export const SLACK_ACTION_TYPES: { [key: string]: string } = {
   addToSFMC: "AddToSFMC",
   noToSFMC: "NoToSFMC",
+  sarahImage: "SarahImage",
+  sarahText: "SarahText",
+  chatStylePreset: "chat_style_preset",
+  chatStyleOverride: "chat_style_overrides",
+  initialPrompt: "sarah_prompt_preference",
+  noSettingsReminder: "no_settings_reminder",
+  closeSettings: "sarah_settings_done",
 };
-export const OPENAPI_URLS: any = {
+export const OPENAPI_URLS: { [key: string]: string } = {
   imageGeneration: "https://api.openai.com/v1/images/generations",
 };
-export const ENV: any = {
+export const ENV: { [key: string]: string } = {
   incomingTable: process.env.incomingTable || "",
   outgoingTable: process.env.outgoingTable || "",
   dalleHistory: process.env.dalleHistory || "",

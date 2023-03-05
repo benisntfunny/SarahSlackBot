@@ -2,7 +2,7 @@
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { hashKey } from "./utilities/generate";
-import { success } from "./utilities/responses";
+import { success, successPlain } from "./utilities/responses";
 import { writeToDynamoDB } from "./utilities/aws";
 import { ENV } from "./utilities/static";
 
@@ -25,5 +25,5 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     ...params,
     nextTable: ENV.outgoingTable,
   });
-  return success({});
+  return successPlain();
 };

@@ -1,8 +1,13 @@
 /** @format */
 
 import { isAuthorized } from "./utilities/auth";
-import { success, unauthorized } from "./utilities/responses";
-import { categoryListing } from "./utilities/sfmc";
+import {
+  failure,
+  success,
+  successPlain,
+  unauthorized,
+} from "./utilities/responses";
+import { categoryListing, tagSearch } from "./utilities/sfmc";
 import { ENV } from "./utilities/static";
 /**
  * history
@@ -21,4 +26,11 @@ export const history = async (event: any) => {
   );
 
   return success(results);
+};
+export const searchByTag = async (event: any) => {
+  const tag = event?.queryStringParameters?.tag;
+  if (tag) {
+    const tags = await tagSearch(tag, 1);
+    return success(tags.items && tags.items.length ? tags.items : []);
+  } else return failure({ error: "Missing tag" });
 };

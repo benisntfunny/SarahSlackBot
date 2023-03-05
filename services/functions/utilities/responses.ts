@@ -5,7 +5,7 @@ import { HTTPS_CODES } from "./static";
 export function success(body: any) {
   return buildResponse(HTTPS_CODES.success, body);
 }
-export function successPlain(body: string) {
+export function successPlain(body: string = "") {
   return {
     statusCode: HTTPS_CODES.success,
     headers: {
@@ -13,7 +13,7 @@ export function successPlain(body: string) {
       "Access-Control-Allow-Credentials": true,
       "Content-Type": "text/plain",
     },
-    body,
+    body: body ?? undefined,
   };
 }
 export function badRequest(body: any) {

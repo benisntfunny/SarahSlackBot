@@ -4,24 +4,55 @@ import { Configuration, OpenAIApi } from "openai";
 import axios from "axios";
 import { dallUrlToS3 } from "./aws";
 import { dalleToMC } from "./sfmc";
-import { ENV, OPENAPI_URLS } from "./static";
+import { ENV, OPENAPI_URLS, SLACK_ACTION_TYPES } from "./static";
 
-export async function GPT(text: string): Promise<any> {
-  const configuration = new Configuration({
-    apiKey: ENV.openAPIKey,
-  });
-  const openai = new OpenAIApi(configuration);
+export async function GPT(messages: any): Promise<any> {
+  const response = await axios.post(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      model: "gpt-3.5-turbo",
+      messages,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ENV.openAPIKey}`,
+      },
+    }
+  );
+  return response.data.choices[0].message.content;
+}
+export function buildSettingsText(settings: any) {
+  console.log("settings", settings);
+  if (settings) {
+    console.log(settings);
+    if (settings[SLACK_ACTION_TYPES.chatStyleOverride]) {
+      return `${settings[SLACK_ACTION_TYPES.chatStyleOverride]}`;
+    } else if (
+      settings[SLACK_ACTION_TYPES.chatStylePreset] &&
+      settings[SLACK_ACTION_TYPES.chatStylePreset] !== "default"
+    ) {
+      switch (settings[SLACK_ACTION_TYPES.chatStylePreset]) {
+        case "sarcasm":
+          return "Be extremely sarcastic and snarky in all responses but still answer any request";
+        case "rhymes":
+          return "Rhyme all responses as much as possible";
+        case "overly_excited":
+          return "All responses should be hyper excited";
+        case "liar":
+          return "Attempt to obviously lie in all responses";
+        case "happy":
+          return "All responses should be extremely optmistic and happy";
+        default:
+          //this isn't ideal it means the preset in the menu hasn't be handled here yet.
+          return `When you are talking be very ${settings[
+            SLACK_ACTION_TYPES.chatStylePreset
+          ].replace(/_/g, " ")}.`;
+      }
+    }
+  }
 
-  const response: any = await openai.createCompletion({
-    model: "text-davinci-003",
-    prompt: text,
-    temperature: 0.7,
-    max_tokens: 400,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-  });
-  return response.data.choices[0].text.replace("\n\n", "\n");
+  return "";
 }
 
 export async function dalle(

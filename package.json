@@ -26,6 +26,6 @@
     "axios": "^0.27.2",
     "dotenv": "^16.0.3",
     "node-cloud-vision-api": "^0.2.0",
-    "openai": "^3.0.0"
+    "openai": "^3.2.1"
   }
 }

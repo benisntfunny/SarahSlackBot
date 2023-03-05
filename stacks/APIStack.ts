@@ -33,6 +33,12 @@ export function APIStack({ stack }: StackContext) {
     },
     primaryIndex: { partitionKey: "referenceId" },
   });
+  const stats = new Table(stack, "Stats", {
+    fields: {
+      userId: "string",
+    },
+    primaryIndex: { partitionKey: "userId" },
+  });
 
   const inTable = new Table(stack, "InMessage", {
     fields: {
@@ -97,6 +103,7 @@ export function APIStack({ stack }: StackContext) {
           azure_domain: process.env.AZURE_DOMAIN || "",
           default_app_id: process.env.DEFAULT_APP_ID || "",
           default_image_size: process.env.DEFAULT_IMAGE_SIZE || "",
+          loading_image_url: process.env.LOADING_IMAGE_URL || "",
         },
       },
     },
@@ -109,6 +116,7 @@ export function APIStack({ stack }: StackContext) {
       "POST /sarah/ask": "functions/content.getGPTAnswer",
       "POST /dalle/generate": "functions/content.getDALLEAnswer",
       "POST /dalle/sfmc/history": "functions/sfmc.history",
+      "GET /dalle/sfmc/tag-search": "functions/sfmc.searchByTag",
       "GET /dalle/history": "functions/content.getDalleHistory",
       "GET /auth": "functions/auth.check",
     },
