@@ -4,6 +4,9 @@
   "compilerOptions": {
     "module": "esnext",
     "target": "es2017",
+    "lib": [
+      "es5", "es6", "dom", "dom.iterable"
+    ],
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "baseUrl": "."

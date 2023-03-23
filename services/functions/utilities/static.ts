@@ -1,5 +1,105 @@
 /** @format */
 
+export const SETTINGS_TYPES: { [key: string]: string } = {
+  BOT_SETTINGS: "botSettings",
+};
+
+export const SLACK_TYPES: { [key: string]: string } = {
+  MESSAGE: "message",
+  REPLY: "reply",
+  IM: "im",
+  APP_MENTION: "app_mention",
+  NEW_MESSAGE: "new_message",
+  NOTHING: "nothing",
+  IMAGE: "IMAGE",
+  NEW_MESSAGE_SKIP_PROMPT: "new_message_skip_prompt",
+  NEW_IMAGE_SKIP_PROMPT: "new_image_skip_prompt",
+};
+export const SLACK_COMMANDS: { [key: string]: string } = {
+  WRITE: "/write",
+  IMAGE: "/image",
+};
+export const HTTPS_CODES: { [key: string]: number } = {
+  SUCCESS: 200,
+  FAILURE: 500,
+  AUTHORIZED: 401,
+  BAD_REQUEST: 400,
+};
+export const SFMC_URLS: { [key: string]: string } = {
+  AUTH: `https://${process.env.SFMC_SUBDOMAIN}.auth.marketingcloudapis.com/v2/token`,
+  TAGS: "/hub/v1/objects/media/tags/",
+  ASSETS: "/asset/v1/content/assets",
+  BASE: `https://${process.env.SFMC_SUBDOMAIN}.rest.marketingcloudapis.com`,
+};
+export const AUTH_URLS: { [key: string]: string } = {
+  LOCAL_1: "https://local.dev:4200",
+  LOCAL_2: "http://localhost:4200",
+};
+export const SLACK_URLS: { [key: string]: string } = {
+  POST_MESSAGE: "https://slack.com/api/chat.postMessage",
+  UPDATE: "https://slack.com/api/chat.update",
+  GET_USER: "https://slack.com/api/users.info?user=",
+  GET_CHAT_THREAD: "https://slack.com/api/conversations.replies",
+};
+export const GPTStyles: any = {
+  GPT4: {
+    name: "GPT4",
+    model: "gpt-4",
+  },
+  CHAT_GPT: {
+    name: "ChatGPT",
+    model: "gpt-3.5-turbo",
+  },
+  GPT3: {
+    name: "GPT3",
+    model: "text-davinci-003",
+  },
+};
+export const SLACK_ACTION_TYPES: { [key: string]: string } = {
+  ADD_TO_SFMC: "AddToSFMC",
+  NO_TO_SFMC: "NoToSFMC",
+  SARAH_IMAGE: "SarahImage",
+  SARAH_TEXT: "SarahText",
+  CHAT_STYLE_PRESET: "chat_style_preset",
+  CHAT_STYLE_OVERRIDE: "chat_style_overrides",
+  INITIAL_PROMPT: "sarah_prompt_preference",
+  CHAT_MODEL: "sarah_chat_model",
+  NO_SETTINGS_REMINDER: "no_settings_reminder",
+  NO_SETTINGS_TOGGLE: "no_settings_toggle",
+  CLOSE_SETTINGS: "sarah_settings_done",
+  NEW_CHAT_SETTINGS: "sarah_new_chat_settings",
+  OPEN_SETTINGS: "sarah_open_settings",
+  START_CHAT: "sarah_start_chat",
+  CREATE_IMAGE: "sarah_create_image",
+};
+export const OPENAPI_URLS: { [key: string]: string } = {
+  IMAGE_GENERATION: "https://api.openai.com/v1/images/generations",
+};
+export const ENV: { [key: string]: string } = {
+  INCOMING_TABLE: process.env.INCOMING_TABLE || "",
+  OUTGOING_TABLE: process.env.OUTGOING_TABLE || "",
+  DALLE_HISTORY: process.env.DALLE_HISTORY || "",
+  SETTINGS: process.env.settings || "",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  CONTENT: process.env.content || "",
+  SFMC_CLIENT_ID: process.env.SFMC_CLIENT_ID || "",
+  SFMC_CLIENT_SECRET: process.env.SFMC_CLIENT_SECRET || "",
+  SFMC_MID: process.env.SFMC_MID || "",
+  SFMC_SUBDOMAIN: process.env.SFMC_SUBDOMAIN || "",
+  SFMC_CATEGORY_ID: process.env.SFMC_CATEGORY_ID || "",
+  SFMC_AUTHORIZED_APPS: process.env.SFMC_AUTHORIZED_APPS || "",
+  AZURE_KEY: process.env.AZURE_KEY || "",
+  SARAH_ID: process.env.SARAH_ID || "",
+  SARAH_TOKEN: process.env.SARAH_TOKEN || "",
+  AZURE_DOMAIN: process.env.AZURE_DOMAIN || "",
+  CONTENT_URL: `https://s3.amazonaws.com/${process.env.content}/image-store/`,
+  AZURE_URL: `https://${process.env.AZURE_DOMAIN}.cognitiveservices.azure.com/vision/v3.2/analyze?visualFeatures=Categories,Color,Objects`,
+  SARAH_APP_ID: process.env.SARAH_APP_ID || "",
+  SARAH_AUTHORIZED_TEAMS: process.env.SARAH_AUTHORIZED_TEAMS || "",
+  DEFAULT_IMAGE_SIZE: process.env.DEFAULT_IMAGE_SIZE || "512x512",
+  DEFAULT_APP_ID: process.env.DEFAULT_APP_ID || "SARAH-APP",
+};
+
 export const SFMC_MEDIA_TYPES: any = {
   ai: { id: 16 },
   psd: { id: 17 },
@@ -215,71 +315,4 @@ export const SFMC_MEDIA_TYPES: any = {
   contentmap: { id: 228 },
   jsonmessage: { id: 230 },
   icemailformblock: { id: 232 },
-};
-export const SLACK_TYPES: { [key: string]: string } = {
-  message: "message",
-  reply: "reply",
-  im: "im",
-  app_mention: "app_mention",
-  new_message: "new_message",
-  nothing: "nothing",
-};
-export const HTTPS_CODES: { [key: string]: number } = {
-  success: 200,
-  failure: 500,
-  authorized: 401,
-  badRequest: 400,
-};
-export const SFMC_URLS: { [key: string]: string } = {
-  auth: `https://${process.env.sfmc_subdomain}.auth.marketingcloudapis.com/v2/token`,
-  tags: "/hub/v1/objects/media/tags/",
-  assets: "/asset/v1/content/assets",
-  base: `https://${process.env.sfmc_subdomain}.rest.marketingcloudapis.com`,
-};
-export const AUTH_URLS: { [key: string]: string } = {
-  local1: "https://local.dev:4200",
-  local2: "http://localhost:4200",
-};
-export const SLACK_URLS: { [key: string]: string } = {
-  postMessage: "https://slack.com/api/chat.postMessage",
-  update: "https://slack.com/api/chat.update",
-  getUser: "https://slack.com/api/users.info?user=",
-};
-export const SLACK_ACTION_TYPES: { [key: string]: string } = {
-  addToSFMC: "AddToSFMC",
-  noToSFMC: "NoToSFMC",
-  sarahImage: "SarahImage",
-  sarahText: "SarahText",
-  chatStylePreset: "chat_style_preset",
-  chatStyleOverride: "chat_style_overrides",
-  initialPrompt: "sarah_prompt_preference",
-  noSettingsReminder: "no_settings_reminder",
-  closeSettings: "sarah_settings_done",
-};
-export const OPENAPI_URLS: { [key: string]: string } = {
-  imageGeneration: "https://api.openai.com/v1/images/generations",
-};
-export const ENV: { [key: string]: string } = {
-  incomingTable: process.env.incomingTable || "",
-  outgoingTable: process.env.outgoingTable || "",
-  dalleHistory: process.env.dalleHistory || "",
-  settings: process.env.settings || "",
-  openAPIKey: process.env.openAPIKey || "",
-  content: process.env.content || "",
-  sfmc_client_id: process.env.sfmc_client_id || "",
-  sfmc_client_secret: process.env.sfmc_client_secret || "",
-  sfmc_mid: process.env.sfmc_mid || "",
-  sfmc_subdomain: process.env.sfmc_subdomain || "",
-  sfmc_category_id: process.env.sfmc_category_id || "",
-  sfmc_authorized_apps: process.env.sfmc_authorized_apps || "",
-  azure_key: process.env.azure_key || "",
-  sarah_id: process.env.sarah_id || "",
-  sarah_token: process.env.sarah_token || "",
-  azure_domain: process.env.azure_domain || "",
-  contentURL: `https://s3.amazonaws.com/${process.env.content}/image-store/`,
-  azure: `https://${process.env.azure_domain}.cognitiveservices.azure.com/vision/v3.2/analyze?visualFeatures=Categories,Color,Objects`,
-  sarah_app_id: process.env.sarah_app_id || "",
-  sarah_authorized_teams: process.env.sarah_authorized_teams || "",
-  default_image_size: process.env.default_image_size || "512x512",
-  default_app_id: process.env.default_app_id || "SARAH-APP",
 };

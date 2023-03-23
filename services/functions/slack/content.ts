@@ -1,15 +1,16 @@
 /** @format */
 
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-import { GPT, dalle } from "./utilities/openai";
-import { queryDalleHistory } from "./utilities/aws";
-import { isAuthorized } from "./utilities/auth";
+import { GPT3, dalle } from "../utilities/openai";
+import { queryDalleHistory } from "../utilities/aws";
+import { isAuthorized } from "../utilities/auth";
 import {
   badRequest,
   success,
   successPlain,
   unauthorized,
-} from "./utilities/responses";
+} from "../utilities/responses";
+import { GPTStyles } from "../utilities/static";
 
 /**
  * getGPTAnswer
@@ -26,7 +27,7 @@ export const getGPTAnswer: APIGatewayProxyHandlerV2 = async (event: any) => {
   if (!text) {
     return badRequest({ error: "Missing text" });
   }
-  let response = await GPT(text);
+  let response = await GPT3(text, GPTStyles.GPT3.model);
   response =
     response.indexOf("\n") === 0 ? response.replace("\n", "") : response;
   return success({ response });

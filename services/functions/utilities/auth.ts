@@ -11,10 +11,10 @@ function isSlackRequest(event: any) {
 export function isAuthorized(event: any) {
   if (isSlackRequest(event)) {
     if (
-      getJSONBody(event).api_app_id === ENV.sarah_app_id &&
-      ENV.sarah_authorized_teams
-        ?.split(",")
-        .includes(getJSONBody(event).team_id)
+      getJSONBody(event).api_app_id === ENV.SARAH_APP_ID &&
+      ENV.SARAH_AUTHORIZED_TEAMS?.split(",").includes(
+        getJSONBody(event).team_id
+      )
     ) {
       return true;
     } else {
@@ -22,12 +22,12 @@ export function isAuthorized(event: any) {
     }
   }
   const originPassOrigin =
-    event?.headers?.origin === AUTH_URLS.local1 ||
-    event?.headers?.origin === AUTH_URLS.local2;
+    event?.headers?.origin === AUTH_URLS.LOCAL_1 ||
+    event?.headers?.origin === AUTH_URLS.LOCAL_2;
   if (originPassOrigin) {
     return true;
   }
-  const validAppIds = ENV.sfmc_authorized_apps?.split(",") || [];
+  const validAppIds = ENV.SFMC_AUTHORIZED_APPS?.split(",") || [];
 
   const validId = validAppIds.find((id: string) => {
     return id === event?.headers?.appid;

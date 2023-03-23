@@ -24,14 +24,14 @@ export async function dallUrlToS3(url: string, appId: string, query: string) {
   const imageName = createRandomFileName(now, "png");
   //upload the image to s3
   const params: any = {
-    Bucket: ENV.content,
+    Bucket: ENV.CONTENT,
     Key: `image-store/${appId}/${imageName}`,
     Body: Buffer.from(imageRes.data, "base64"),
     ContentType: "image/png",
   };
   await s3.putObject(params).promise();
   //set the URL for the image
-  const s3Url = `${ENV.contentURL}${appId}/${imageName}`;
+  const s3Url = `${ENV.CONTENTURL}${appId}/${imageName}`;
   //save the image URL to dynamoDB
   const writeParams = {
     appId: appId,
@@ -39,7 +39,7 @@ export async function dallUrlToS3(url: string, appId: string, query: string) {
     url: s3Url,
     query: query,
   };
-  writeToDynamoDB(ENV.dalleHistory, writeParams);
+  writeToDynamoDB(ENV.DALLE_HISTORY, writeParams);
   //return the image URL
   return writeParams;
 }
@@ -50,7 +50,7 @@ export function getNewRecord(Records: any) {
 }
 export async function queryDalleHistory(appId: string, count: Number) {
   const statement = `SELECT url, requestDate, query
-                     FROM "${ENV.dalleHistory}" 
+                     FROM "${ENV.DALLE_HISTORY}" 
                      WHERE "appId" = '${appId}'
                      ORDER BY "requestDate" DESC`;
 

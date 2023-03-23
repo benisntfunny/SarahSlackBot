@@ -4,26 +4,26 @@ export function convertBufferToJSON(data: string) {
   let buffer = Buffer.from(data, "base64");
   let string = decodeURI(buffer.toString("ascii"))
     .replace("payload=", "")
-    .replaceAll("%3A", ":")
-    .replaceAll("%2C", ",")
-    .replaceAll("%22", '"')
-    .replaceAll("%7B", "{")
-    .replaceAll("%7D", ")")
-    .replaceAll("%5B", "[")
-    .replaceAll("%5D", "]")
-    .replaceAll("%7C", "|")
-    .replaceAll("%2F", "/");
+    .replace(/%3A/gi, ":")
+    .replace(/%2C/gi, ",")
+    .replace(/%22/gi, '"')
+    .replace(/%7B/gi, "{")
+    .replace(/%7D/gi, ")")
+    .replace(/%5B/gi, "[")
+    .replace(/%5D/gi, "]")
+    .replace(/%7C/gi, "|")
+    .replace(/%2F/gi, "/");
   try {
     string = decodeURI(string)
-      .replaceAll("%3A", ":")
-      .replaceAll("%2C", ",")
-      .replaceAll("%22", '"')
-      .replaceAll("%7B", "{")
-      .replaceAll("%7D", ")")
-      .replaceAll("%5B", "[")
-      .replaceAll("%5D", "]")
-      .replaceAll("%7C", "|")
-      .replaceAll("%2F", "/");
+      .replace(/%3A/gi, ":")
+      .replace(/%2C/gi, ",")
+      .replace(/%22/gi, '"')
+      .replace(/%7B/gi, "{")
+      .replace(/%7D/gi, ")")
+      .replace(/%5B/gi, "[")
+      .replace(/%5D/gi, "]")
+      .replace(/%7C/gi, "|")
+      .replace(/%2F/gi, "/");
   } catch (e) {}
   return JSON.parse(string);
 }

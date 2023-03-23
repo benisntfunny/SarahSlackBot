@@ -1,14 +1,14 @@
 /** @format */
 
-import { isAuthorized } from "./utilities/auth";
+import { isAuthorized } from "../utilities/auth";
 import {
   failure,
   success,
   successPlain,
   unauthorized,
-} from "./utilities/responses";
-import { categoryListing, tagSearch } from "./utilities/sfmc";
-import { ENV } from "./utilities/static";
+} from "../utilities/responses";
+import { categoryListing, tagSearch } from "../utilities/sfmc";
+import { ENV } from "../utilities/static";
 /**
  * history
  * @description Returns a list of content items from the SFMC category
@@ -21,7 +21,7 @@ export const history = async (event: any) => {
   }
   const body = JSON.parse(event.body);
   const results = await categoryListing(
-    event.category || ENV.sfmc_category_id,
+    event.category || ENV.SFMC_CATEGORY_ID,
     body.page || 1
   );
 

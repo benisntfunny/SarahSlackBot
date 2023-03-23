@@ -1,12 +1,13 @@
 /** @format */
 
 import axios from "axios";
-import { ENV, SLACK_ACTION_TYPES, SLACK_URLS } from "./static";
+import { ENV, SLACK_ACTION_TYPES, SLACK_URLS, GPTStyles } from "../static";
+import { settingsBlock, prompt } from "./blocks";
 
-const userToken = ENV.sarah_token;
+const USER_TOKEN = ENV.SARAH_TOKEN;
 export function sarahRemover(text: string = "") {
-  const r1 = new RegExp(`.*${ENV.sarah_id.replace("@", "")}>`, "");
-  const r2 = new RegExp(`<@${ENV.sarah_id}>`, "gi");
+  const r1 = new RegExp(`.*${ENV.SARAH_ID.replace("@", "")}>`, "");
+  const r2 = new RegExp(`<@${ENV.SARAH_ID}>`, "gi");
   return text.replace(r1, "").trim().replace(r2, "Sarah");
 }
 export async function swapOutIds(text: string = "") {
@@ -32,11 +33,15 @@ export async function respondToMessage(url: string, text: string) {
 }
 function getOptionsTextFromSettings(optionType: string, value: string) {
   switch (optionType) {
-    case SLACK_ACTION_TYPES.initialPrompt:
+    case SLACK_ACTION_TYPES.INITIAL_PROMPT:
       return settingsBlock[0]?.element?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
-    case SLACK_ACTION_TYPES.chatStylePreset:
+    case SLACK_ACTION_TYPES.CHAT_STYLE_PRESET:
+      return settingsBlock[5]?.accessory?.options?.find((option) => {
+        return option.value === value;
+      })?.text.text;
+    case SLACK_ACTION_TYPES.CHAT_MODEL:
       return settingsBlock[4]?.accessory?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
@@ -44,17 +49,33 @@ function getOptionsTextFromSettings(optionType: string, value: string) {
       return "Unknown";
   }
 }
+function addInModelTypes() {
+  const block: any = settingsBlock;
+
+  for (const [key, value] of Object.entries(GPTStyles)) {
+    const option = {
+      text: {
+        type: "plain_text",
+        text: GPTStyles[key].name,
+        emoji: true,
+      },
+      value: key,
+    };
+    block[4].accessory.options.push(option);
+  }
+  return block;
+}
 function applySettingsBlock(options: any = undefined) {
-  let block: any[] = settingsBlock || [];
+  let block: any[] = addInModelTypes() || [];
 
   if (!options) return block;
   else {
     let text;
     //Set default values of prompts, chatStyle, override
-    if (options[SLACK_ACTION_TYPES.initialPrompt]) {
+    if (options[SLACK_ACTION_TYPES.INITIAL_PROMPT]) {
       text = getOptionsTextFromSettings(
-        SLACK_ACTION_TYPES.initialPrompt,
-        options[SLACK_ACTION_TYPES.initialPrompt]
+        SLACK_ACTION_TYPES.INITIAL_PROMPT,
+        options[SLACK_ACTION_TYPES.INITIAL_PROMPT]
       );
       block[0].element["initial_option"] = {
         text: {
@@ -62,13 +83,27 @@ function applySettingsBlock(options: any = undefined) {
           text,
           emoji: true,
         },
-        value: options[SLACK_ACTION_TYPES.initialPrompt],
+        value: options[SLACK_ACTION_TYPES.INITIAL_PROMPT],
       };
     }
-    if (options[SLACK_ACTION_TYPES.chatStylePreset]) {
+    if (options[SLACK_ACTION_TYPES.CHAT_STYLE_PRESET]) {
       text = getOptionsTextFromSettings(
-        SLACK_ACTION_TYPES.chatStylePreset,
-        options[SLACK_ACTION_TYPES.chatStylePreset]
+        SLACK_ACTION_TYPES.CHAT_STYLE_PRESET,
+        options[SLACK_ACTION_TYPES.CHAT_STYLE_PRESET]
+      );
+      block[5].accessory["initial_option"] = {
+        text: {
+          type: "plain_text",
+          text,
+          emoji: true,
+        },
+        value: options[SLACK_ACTION_TYPES.CHAT_STYLE_PRESET],
+      };
+    }
+    if (options[SLACK_ACTION_TYPES.CHAT_MODEL]) {
+      text = getOptionsTextFromSettings(
+        SLACK_ACTION_TYPES.CHAT_MODEL,
+        options[SLACK_ACTION_TYPES.CHAT_MODEL]
       );
       block[4].accessory["initial_option"] = {
         text: {
@@ -76,16 +111,60 @@ function applySettingsBlock(options: any = undefined) {
           text,
           emoji: true,
         },
-        value: options[SLACK_ACTION_TYPES.chatStylePreset],
+        value: options[SLACK_ACTION_TYPES.CHAT_MODEL],
       };
     }
-    if (options[SLACK_ACTION_TYPES.chatStyleOverride]) {
-      text = options[SLACK_ACTION_TYPES.chatStyleOverride];
+    if (options[SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE]) {
+      text = options[SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE];
 
-      block[6].element["initial_value"] = text;
+      block[7].element["initial_value"] = text;
+    }
+    if (
+      options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER] &&
+      options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER].length > 0
+    ) {
+      console.log(options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER]);
+      block[9].elements[0].initial_options = [
+        {
+          text: {
+            type: "mrkdwn",
+            text: "*Don't remind about settings*",
+          },
+          description: {
+            type: "mrkdwn",
+            text: "*You won't be reminded about settings when using `Prompt for Images or Chat`.*",
+          },
+          value: SLACK_ACTION_TYPES.NO_SETTINGS_TOGGLE,
+        },
+      ];
     }
   }
   return block;
+}
+
+export async function sendPromptBlock(
+  channel: string,
+  thread_ts: string,
+  options: any = undefined
+) {
+  let blocks = prompt.blocks;
+  if (options && options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER]?.length > 0) {
+    blocks = blocks.slice(0, 2);
+  }
+  await axios.post(
+    SLACK_URLS.POST_MESSAGE,
+    {
+      channel,
+      thread_ts,
+      blocks,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${USER_TOKEN}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    }
+  );
 }
 
 export async function sendSettingsBlock(url: string, options: any = undefined) {
@@ -98,13 +177,34 @@ export async function sendSettingsBlock(url: string, options: any = undefined) {
     { headers: { "Content-Type": "application/json" } }
   );
 }
+export async function sendSettingsEpherealBlock(
+  channel: string,
+  user: string,
+  options: any = undefined
+) {
+  let blocks = applySettingsBlock(options);
+  await axios.post(
+    "https://slack.com/api/chat.postEphemeral",
+    {
+      channel,
+      user,
+      blocks,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${USER_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
 export async function sendMessage(
   channel: string,
   thread: string,
   text: string = ""
 ) {
   await axios.post(
-    SLACK_URLS.postMessage,
+    SLACK_URLS.POST_MESSAGE,
     {
       channel: channel,
       thread_ts: thread,
@@ -112,7 +212,7 @@ export async function sendMessage(
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
@@ -124,7 +224,7 @@ export async function sendBlock(
   blocks: any = {}
 ) {
   await axios.post(
-    SLACK_URLS.postMessage,
+    SLACK_URLS.POST_MESSAGE,
     {
       channel,
       thread_ts,
@@ -132,16 +232,16 @@ export async function sendBlock(
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
   );
 }
 export async function userLookup(userId: string = "") {
-  const ax = await axios.get(`${SLACK_URLS.getUser}${userId}`, {
+  const ax = await axios.get(`${SLACK_URLS.GET_USER}${userId}`, {
     headers: {
-      Authorization: `Bearer ${userToken}`,
+      Authorization: `Bearer ${USER_TOKEN}`,
       "Content-Type": "application/json; charset=utf-8",
     },
   });
@@ -155,7 +255,7 @@ export async function sendImage(
   url: string = ""
 ) {
   await axios.post(
-    SLACK_URLS.postMessage,
+    SLACK_URLS.POST_MESSAGE,
     {
       channel: channel,
       thread_ts: thread,
@@ -170,12 +270,37 @@ export async function sendImage(
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
   );
 }
+
+export async function replaceMessage(
+  channel: string = "",
+  thread: string = "",
+  text: string = ""
+) {
+  console.log(channel, thread, text);
+  const res = await axios.post(
+    SLACK_URLS.UPDATE,
+    {
+      channel: channel,
+      ts: thread,
+      text,
+      blocks: [],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${USER_TOKEN}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    }
+  );
+  console.log(res);
+}
+
 export async function replaceImage(
   channel: string,
   thread: string,
@@ -183,7 +308,7 @@ export async function replaceImage(
   url: string = ""
 ) {
   await axios.post(
-    SLACK_URLS.update,
+    SLACK_URLS.UPDATE,
     {
       channel: channel,
       ts: thread,
@@ -198,7 +323,7 @@ export async function replaceImage(
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
@@ -207,7 +332,7 @@ export async function replaceImage(
 
 export async function imageOrTextButtons(channel: string, thread: string) {
   await axios.post(
-    SLACK_URLS.postMessage,
+    SLACK_URLS.POST_MESSAGE,
     {
       channel: channel,
       thread_ts: thread,
@@ -239,11 +364,24 @@ export async function imageOrTextButtons(channel: string, thread: string) {
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
   );
+}
+
+export async function getChatThread(channel: string, ts: string) {
+  const ax = await axios.get(
+    `${SLACK_URLS.GET_CHAT_THREAD}?channel=${channel}&ts=${ts}`,
+    {
+      headers: {
+        Authorization: `Bearer ${USER_TOKEN}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    }
+  );
+  return ax.data;
 }
 
 export async function sendImageWithButtons(
@@ -253,7 +391,7 @@ export async function sendImageWithButtons(
   url: string = ""
 ) {
   await axios.post(
-    SLACK_URLS.postMessage,
+    SLACK_URLS.POST_MESSAGE,
     {
       channel: channel,
       thread_ts: thread,
@@ -275,18 +413,18 @@ export async function sendImageWithButtons(
           color: "#3AA3E3",
           actions: [
             {
-              name: SLACK_ACTION_TYPES.addToSFMC,
+              name: SLACK_ACTION_TYPES.ADD_TO_SFMC,
               text: "Yes",
               type: "button",
               style: "primary",
-              value: SLACK_ACTION_TYPES.addToSFMC,
+              value: SLACK_ACTION_TYPES.ADD_TO_SFMC,
             },
             {
-              name: SLACK_ACTION_TYPES.noToSFMC,
+              name: SLACK_ACTION_TYPES.NO_TO_SFMC,
               text: "No",
               type: "button",
               style: "danger",
-              value: SLACK_ACTION_TYPES.noToSFMC,
+              value: SLACK_ACTION_TYPES.NO_TO_SFMC,
             },
           ],
         },
@@ -294,178 +432,9 @@ export async function sendImageWithButtons(
     },
     {
       headers: {
-        Authorization: `Bearer ${userToken}`,
+        Authorization: `Bearer ${USER_TOKEN}`,
         "Content-Type": "application/json; charset=utf-8",
       },
     }
   );
 }
-export const settingsBlock = [
-  {
-    type: "input",
-    element: {
-      type: "radio_buttons",
-      options: [
-        {
-          text: {
-            type: "plain_text",
-            text: "Prompt for Images or Chat",
-            emoji: true,
-          },
-          value: "prompt",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Chat Only",
-            emoji: true,
-          },
-          value: "chat_only",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Images Only",
-            emoji: true,
-          },
-          value: "images_only",
-        },
-      ],
-      action_id: SLACK_ACTION_TYPES.initialPrompt,
-    },
-    label: {
-      type: "plain_text",
-      text: "Initial Prompt Options",
-      emoji: true,
-    },
-  },
-  {
-    type: "divider",
-  },
-  {
-    type: "header",
-    text: {
-      type: "plain_text",
-      text: "Chat Settings",
-      emoji: true,
-    },
-  },
-  {
-    type: "context",
-    elements: [
-      {
-        type: "mrkdwn",
-        text: "These options will take effect on your next chat.",
-      },
-    ],
-  },
-  {
-    type: "section",
-    text: {
-      type: "mrkdwn",
-      text: "*Preset chat style*",
-    },
-    accessory: {
-      type: "static_select",
-      placeholder: {
-        type: "plain_text",
-        text: "Select an item",
-        emoji: true,
-      },
-      options: [
-        {
-          text: {
-            type: "plain_text",
-            text: "Default",
-            emoji: true,
-          },
-          value: "default",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Sarcastic",
-            emoji: true,
-          },
-          value: "sarcasm",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Rhymes Too Much",
-            emoji: true,
-          },
-          value: "rhymes",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Overly Excited",
-            emoji: true,
-          },
-          value: "overly_excited",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Purposely Lie",
-            emoji: true,
-          },
-          value: "liar",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Very Happy",
-            emoji: true,
-          },
-          value: "happy",
-        },
-      ],
-      action_id: SLACK_ACTION_TYPES.chatStylePreset,
-    },
-  },
-  {
-    type: "context",
-    elements: [
-      {
-        type: "mrkdwn",
-        text: "*Custom chat style instructions*",
-      },
-    ],
-  },
-  {
-    dispatch_action: true,
-    type: "input",
-    element: {
-      type: "plain_text_input",
-      action_id: "chat_style_overrides",
-    },
-    label: {
-      type: "plain_text",
-      text: " ",
-      emoji: true,
-    },
-  },
-  /*
-
-  {
-    type: "divider",
-  },
-  {
-    type: "actions",
-    elements: [
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Close Settings",
-          emoji: true,
-        },
-        value: "done",
-        action_id: SLACK_ACTION_TYPES.closeSettings,
-      },
-    ],
-  },
-  */
-];

@@ -4,11 +4,11 @@ import axios from "axios";
 import { ENV } from "./static";
 export async function azureRecognition(url: string) {
   let analysis: any;
-  const uriBase = ENV.azure;
+  const uriBase = ENV.AZURE_URL;
   // Display the image.
   const headers = {
     "Content-Type": "application/json",
-    "Ocp-Apim-Subscription-Key": ENV.azure_key || "",
+    "Ocp-Apim-Subscription-Key": ENV.AZURE_KEY || "",
   };
 
   try {

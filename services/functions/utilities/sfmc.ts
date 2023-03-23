@@ -100,7 +100,7 @@ function checkNewName(error: any) {
 export async function tagSearch(tag: string = "", page: number = 1) {
   return await callMC(
     "get",
-    `${SFMC_URLS.assets}?$filter=Tags=${tag}&pagesize=250&page=${page}`,
+    `${SFMC_URLS.ASSETS}?$filter=Tags=${tag}&pagesize=250&page=${page}`,
     null
   );
 }
@@ -113,12 +113,12 @@ export async function tagSearch(tag: string = "", page: number = 1) {
  * @returns any[]
  */
 export async function categoryListing(
-  category: string = ENV.sfmc_category_id || "",
+  category: string = ENV.SFMC_CATEGORY_ID || "",
   page: number = 1
 ) {
   return await callMC(
     "get",
-    `${SFMC_URLS.assets}?$filter=category.id=${category}&pagesize=250&page=${page}`,
+    `${SFMC_URLS.ASSETS}?$filter=category.id=${category}&pagesize=250&page=${page}`,
     null
   );
 }
@@ -136,7 +136,7 @@ export async function callMC(method: string, url: string, body: any) {
 
   if (method === "post") {
     return (
-      await axios.post(`${SFMC_URLS.base}${url}`, body, {
+      await axios.post(`${SFMC_URLS.BASE}${url}`, body, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -145,7 +145,7 @@ export async function callMC(method: string, url: string, body: any) {
     ).data;
   } else {
     return (
-      await axios.get(`${SFMC_URLS.base}${url}`, {
+      await axios.get(`${SFMC_URLS.BASE}${url}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
     ).data;
@@ -168,7 +168,7 @@ export async function saveAsset(
   file: string,
   originalFileURL: string = "",
   Tags: string[] = [],
-  category: string = ENV.sfmc_category_id || ""
+  category: string = ENV.SFMC_CATEGORY_ID || ""
 ) {
   //get the file type after the last period
   const fileType = fileName.split(".").pop() || "";
@@ -196,7 +196,7 @@ export async function saveAsset(
   };
 
   try {
-    content = await callMC("post", SFMC_URLS.assets, body);
+    content = await callMC("post", SFMC_URLS.ASSETS, body);
   } catch (err: any) {
     console.error(err.response?.data);
     //check if the error is because the name is already taken
@@ -205,7 +205,7 @@ export async function saveAsset(
       body.name = newName;
       try {
         //try again with the new name
-        content = await callMC("post", SFMC_URLS.assets, body);
+        content = await callMC("post", SFMC_URLS.ASSETS, body);
       } catch (err) {
         console.error(err);
       }
@@ -213,7 +213,7 @@ export async function saveAsset(
     return content;
   }
   try {
-    await callMC("post", SFMC_URLS.tags, {
+    await callMC("post", SFMC_URLS.TAGS, {
       objectIds: [content.objectID],
       tagNames: Tags,
     });
@@ -230,8 +230,8 @@ export async function saveAsset(
 async function getSFMCToken() {
   try {
     //get the token from DynamoDB
-    const token: any = await readItemFromDynamoDB(ENV.settings || "", {
-      clientId: ENV.sfmc_client_id,
+    const token: any = await readItemFromDynamoDB(ENV.SETTINGS || "", {
+      clientId: ENV.SFMC_CLIENT_ID,
       type: "sfmc_token",
     });
     //check if the token is expired
@@ -240,12 +240,12 @@ async function getSFMCToken() {
     if (!expired) {
       return token.accessToken;
     } else {
-      const url = SFMC_URLS.auth;
+      const url = SFMC_URLS.AUTH;
       const data = {
         grant_type: "client_credentials",
-        client_id: ENV.sfmc_client_id,
-        client_secret: ENV.sfmc_client_secret,
-        account_id: ENV.sfmc_mid,
+        client_id: ENV.SFMC_CLIENT_ID,
+        client_secret: ENV.SFMC_CLIENT_SECRET,
+        account_id: ENV.SFMC_MID,
       };
       try {
         //get the new token
@@ -255,12 +255,12 @@ async function getSFMCToken() {
         const accessToken = response.data.access_token;
         //save the new token to DynamoDB
         const dynamoInsert = {
-          clientId: ENV.sfmc_client_id,
+          clientId: ENV.SFMC_CLIENT_ID,
           type: "sfmc_token",
           accessToken,
           expireDate: new Date().getTime() + Number(response.data.expires_in),
         };
-        await writeToDynamoDB(ENV.settings || "", dynamoInsert);
+        await writeToDynamoDB(ENV.SETTINGS || "", dynamoInsert);
         return accessToken;
       } catch (err) {
         console.error(err);
