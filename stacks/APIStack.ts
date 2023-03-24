@@ -119,6 +119,7 @@ export function APIStack({ stack }: StackContext) {
       "GET /dalle/sfmc/tag-search": "functions/sfmc/sfmc.searchByTag",
       "GET /dalle/history": "functions/slack/content.getDalleHistory",
       "GET /auth": "functions/auth.check",
+      "POST /twilio-hook": "functions/twilio/main.hook",
     },
   });
 

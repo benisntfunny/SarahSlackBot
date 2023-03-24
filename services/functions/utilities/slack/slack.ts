@@ -141,6 +141,18 @@ function applySettingsBlock(options: any = undefined) {
   }
   return block;
 }
+export async function postToChannel(channel: string, text: string) {
+  await axios.post(
+    SLACK_URLS.POST_MESSAGE,
+    { text, channel, mrkdwn: true },
+    {
+      headers: {
+        Authorization: `Bearer ${USER_TOKEN}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    }
+  );
+}
 
 export async function sendPromptBlock(
   channel: string,
