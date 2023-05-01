@@ -1,5 +1,6 @@
 /** @format */
 
+// Import required libraries and utilities
 import { readItemFromDynamoDB, writeToDynamoDB } from "../utilities/aws";
 import { buildSettingsText, chatGPT, dalleS3, GPT3 } from "../utilities/openai";
 import {
@@ -13,12 +14,14 @@ import {
 } from "../utilities/slack/slack";
 import {
   ENV,
-  GPTStyles,
+  OPENAI_MODELS,
   SETTINGS_TYPES,
   SLACK_ACTION_TYPES,
   SLACK_TYPES,
 } from "../utilities/static";
 import { addPeriod } from "../utilities/text";
+
+// Define the ProcessingActions class
 export class ProcessingActions {
   payload: any = {};
   instruction: string = "";
@@ -32,6 +35,7 @@ export class ProcessingActions {
   message_ts: string = "";
   replaceMessage: boolean = false;
 
+  // Constructor for initializing the class
   constructor(payload: any, incoming: any = {}) {
     this.payload = payload;
     if (incoming) {
@@ -39,7 +43,9 @@ export class ProcessingActions {
     }
   }
 
+  // Prepare incoming message data
   async prepIncomingMessageData() {
+    // Retrieve settings from DynamoDB
     this.settings = await readItemFromDynamoDB(ENV.SETTINGS, {
       clientId: this.payload?.user ?? this.payload.event.user,
       type: SETTINGS_TYPES.BOT_SETTINGS,
@@ -47,6 +53,8 @@ export class ProcessingActions {
     if (!this.settings) {
       this.settings = {};
     }
+
+    // Prepare text and user information
     let text = "";
     if (!this.payload.text)
       text = await swapOutIds(addPeriod(sarahRemover(this.payload.event.text)));
@@ -65,28 +73,36 @@ export class ProcessingActions {
     const settingsText = await buildSettingsText(this.settings);
     const instruction = `${settingsText}. User is named ${userName}. Assistant is named Sarah.`;
 
+    // Choose the appropriate model
     const model = this.settings[SLACK_ACTION_TYPES.CHAT_MODEL]
-      ? GPTStyles[this.settings[SLACK_ACTION_TYPES.CHAT_MODEL]]?.model
-      : GPTStyles.CHAT_GPT.model;
+      ? OPENAI_MODELS[this.settings[SLACK_ACTION_TYPES.CHAT_MODEL]]?.model
+      : OPENAI_MODELS.CHAT_GPT.model;
 
+    // Assign values to class properties
     this.instruction = instruction;
     this.text = text;
     this.model = model;
   }
 
+  // Retrieve chat history
   async retrieveHistory() {
+    // Read history from DynamoDB
     const item: any =
       (await readItemFromDynamoDB(ENV.OUTGOING_TABLE, {
         referenceId: this.incoming.referenceId,
       })) || {};
-    this.referencedChat = item;
 
+    // Assign retrieved values to class properties
+    this.referencedChat = item;
     this.model =
       this.referencedChat[SLACK_ACTION_TYPES.CHAT_MODEL] ||
-      GPTStyles.CHAT_GPT.model;
+      OPENAI_MODELS.CHAT_GPT.model;
     this.history = this.referencedChat.history;
   }
+
+  // Write chat history
   async writeHistory() {
+    // Write history to DynamoDB
     await writeToDynamoDB(ENV.OUTGOING_TABLE, {
       referenceId: this.referenceId,
       history: this.history,
@@ -94,9 +110,16 @@ export class ProcessingActions {
       [SLACK_ACTION_TYPES.CHAT_MODEL]: this.model,
     });
   }
+
+  // Get a new GPT-3 message
   async newGPT3Message(replace: boolean = false) {
+    // Modify the text to include instruction
     this.text = "Note: " + this.instruction + "-------\n\n" + this.text;
+
+    // Generate GPT-3 response
     const response = await GPT3(this.text, this.model);
+
+    // Save history and send the response
     this.referenceId = this.payload?.thread_ts || this.payload.event.event_ts;
     this.history = [this.text, response];
     await this.writeHistory();
@@ -106,7 +129,10 @@ export class ProcessingActions {
       await replaceMessage(this.payload.channel, this.message_ts, response);
     }
   }
+
+  // Get a new ChatGPT message
   async newChatGPTMessage(replace: boolean = false) {
+    // Generate ChatGPT response
     const response = await chatGPT(
       [
         {
@@ -117,6 +143,8 @@ export class ProcessingActions {
       ],
       this.model
     );
+
+    // Save history and send the response
     this.referenceId = this.payload?.thread_ts || this.payload.event.event_ts;
     this.history = [
       {
@@ -141,35 +169,37 @@ export class ProcessingActions {
       );
     }
   }
+
+  // Reply to GPT-3 message
   async replyGPT3Message() {
+    // Prepare text and generate GPT-3 response
     this.text =
       this.history.join("\n") +
       "\n\n" +
       (await swapOutIds(addPeriod(sarahRemover(this.payload.event.text))));
-
     const response = await GPT3(this.text, this.model);
+
+    // Update history and send the response
     this.history.push(
       "\n\n" + addPeriod(sarahRemover(this.payload.event.text))
     );
     this.history.push(response);
     await this.writeHistory();
-
     await sendMessage(
       this.payload.event.channel,
       this.payload.event.event_ts,
       response
     );
   }
-  async replyChatGPTMessage() {
-    this.history.push({ role: "user", content: this.text });
-    /*if (text.length / 1000 >= 4) {
-      await sendMessage(payload.event.channel, payload.event.event_ts, "...");
-      return;
-    } else {
-      */
-    const response = await chatGPT(this.history, this.model);
-    this.history.push({ role: "assistant", content: response });
 
+  // Reply to ChatGPT message
+  async replyChatGPTMessage() {
+    // Update history and generate ChatGPT response
+    this.history.push({ role: "user", content: this.text });
+    const response = await chatGPT(this.history, this.model);
+
+    // Update history and send the response
+    this.history.push({ role: "assistant", content: response });
     await this.writeHistory();
     await sendMessage(
       this.payload.event.channel,
@@ -178,6 +208,7 @@ export class ProcessingActions {
     );
   }
 
+  // Check if the message needs a prompt
   needsPrompt() {
     if (
       !this.settings[SLACK_ACTION_TYPES.INITIAL_PROMPT] ||
@@ -187,34 +218,45 @@ export class ProcessingActions {
     else return false;
   }
 
+  // Request a new image
   async newImage() {
-    const response = (
-      await dalleS3(this.text, ENV.DEFAULT_APP_ID, ENV.DEFAULT_IMAGE_SIZE)
-    ).url;
-    // send the image to slack
+    await this.prepIncomingMessageData();
+    // Generate image URL from DalleS3 and send it
+    const response = await dalleS3(
+      this.text,
+      ENV.DEFAULT_APP_ID,
+      ENV.DEFAULT_IMAGE_SIZE
+    );
+    console.log(response);
     await sendImageWithButtons(
       this.payload.channel ?? this.payload.event.channel,
       this.payload.thread_ts ?? this.payload.event.event_ts,
       this.text,
-      response
+      response?.url
     );
   }
 
+  // Post a new message
   async newMessage(skipPrompt: boolean = false) {
+    // Prepare incoming message data and check if a prompt is needed
     await this.prepIncomingMessageData();
     if (this.needsPrompt() && !skipPrompt) {
       await this.promptForNextAction();
     } else {
-      if (this.model === GPTStyles.GPT3.model) {
+      if (this.model === OPENAI_MODELS.GPT3.model) {
         await this.newGPT3Message(skipPrompt);
       } else {
         await this.newChatGPTMessage(skipPrompt);
       }
     }
   }
+
+  // Send a new message without prompt
   async newMessageSkipPrompt() {}
 
+  // Prompt for next action
   async promptForNextAction() {
+    // Send a prompt block to the user
     await sendPromptBlock(
       this.payload.event.channel,
       this.payload.event.event_ts,
@@ -222,14 +264,17 @@ export class ProcessingActions {
     );
   }
 
+  // Reply to existing message
   async replyMessage() {
+    // Retrieve history and prepare text
     await this.retrieveHistory();
-
     this.text = await swapOutIds(
       addPeriod(sarahRemover(this.payload.event.text))
     );
+
+    // Assign referenceId and invoke reply methods based on the model
     this.referenceId = this.incoming.referenceId;
-    if (this.model === GPTStyles.GPT3.model) {
+    if (this.model === OPENAI_MODELS.GPT3.model) {
       await this.replyGPT3Message();
     } else {
       await this.replyChatGPTMessage();

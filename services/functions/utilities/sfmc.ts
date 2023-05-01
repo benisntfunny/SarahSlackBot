@@ -15,6 +15,7 @@ import { ENV, SFMC_MEDIA_TYPES, SFMC_URLS } from "./static";
 function isTokenValid(expires: number) {
   return expires > new Date().getTime();
 }
+
 /**
  * getAssetTypeId
  * @description Returns the asset type id for the given type
@@ -24,6 +25,7 @@ function isTokenValid(expires: number) {
 function getAssetTypeId(type: string) {
   return SFMC_MEDIA_TYPES[type]?.id;
 }
+
 /**
  * buildTagsFromAnalysis
  * @description Builds an array of tags from the analysis
@@ -48,6 +50,7 @@ function buildTagsFromAnalysis(analysis: any) {
   }
   return tags;
 }
+
 /**
  * dalleToMC
  * @description Downloads the asset from a URL, creates a new name, and saves to SFMC
@@ -68,9 +71,12 @@ export async function dalleToMC(url: string, name: string) {
   now = now.getMonth() + 1 + "-" + now.getDate() + "-" + now.getFullYear();
   //create a random number for the image name combined with date
   const imageName = createRandomFileName(now, "png");
+  // encode image as base64
   const file = Buffer.from(imageRes.data, "base64").toString("base64");
+  //save the asset to SFMC
   return await saveAsset(name, imageName, file, url, tags);
 }
+
 /**
  * checkNewName
  * @description Checks the error message for a suggested name and returns it
@@ -90,10 +96,11 @@ function checkNewName(error: any) {
   //some other error or more than one validation error that we don't know how to handle
   return undefined;
 }
+
 /**
- * categoryListing
- * @description Gets a list of assets in a category
- * @param category: string
+ * tagSearch
+ * @description Searches for assets with a specific tag
+ * @param tag: string
  * @param page: number
  * @returns any[]
  */
@@ -122,10 +129,11 @@ export async function categoryListing(
     null
   );
 }
+
 /**
  * callMC
  * @description Calls the SFMC API
- * @param method: stirng
+ * @param method: string
  * @param url: string
  * @param body: any
  * @returns any
@@ -151,6 +159,7 @@ export async function callMC(method: string, url: string, body: any) {
     ).data;
   }
 }
+
 /**
  * saveAsset
  * @description Saves an asset to SFMC
@@ -222,6 +231,7 @@ export async function saveAsset(
   }
   return content;
 }
+
 /**
  * getSFMCToken
  * @description Gets the SFMC token from DynamoDB or calls SFMC to get a new one
@@ -271,4 +281,4 @@ async function getSFMCToken() {
     console.error(err);
     return;
   }
-}
+} 

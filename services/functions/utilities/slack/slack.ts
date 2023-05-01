@@ -1,15 +1,28 @@
 /** @format */
 
 import axios from "axios";
-import { ENV, SLACK_ACTION_TYPES, SLACK_URLS, GPTStyles } from "../static";
+import { ENV, SLACK_ACTION_TYPES, SLACK_URLS, OPENAI_MODELS } from "../static";
 import { settingsBlock, prompt } from "./blocks";
 
+// Get the Sarah user token from the environment
 const USER_TOKEN = ENV.SARAH_TOKEN;
+
+/**
+ * Replace any mention of Sarah's user ID with her name.
+ * @param {string} text
+ * @return {string} New text without Sarah's user ID
+ */
 export function sarahRemover(text: string = "") {
   const r1 = new RegExp(`.*${ENV.SARAH_ID.replace("@", "")}>`, "");
   const r2 = new RegExp(`<@${ENV.SARAH_ID}>`, "gi");
   return text.replace(r1, "").trim().replace(r2, "Sarah");
 }
+
+/**
+ * Replace user IDs in the text with their names.
+ * @param {string} text
+ * @return {Promise<string>} New text with names instead of user IDs
+ */
 export async function swapOutIds(text: string = "") {
   const matches = text.match(/<@[a-zA-Z0-9_]*>/gi) ?? [];
   for (let x = 0; x < matches.length; x++) {
@@ -22,6 +35,12 @@ export async function swapOutIds(text: string = "") {
   }
   return text;
 }
+
+/**
+ * Send a message as a response to a specified url.
+ * @param {string} url
+ * @param {string} text
+ */
 export async function respondToMessage(url: string, text: string) {
   await axios.post(
     url,
@@ -31,6 +50,13 @@ export async function respondToMessage(url: string, text: string) {
     { headers: { "Content-Type": "application/json" } }
   );
 }
+
+/**
+ * Get the text of the selected option from the settings block.
+ * @param {string} optionType
+ * @param {string} value
+ * @return {string} Option text
+ */
 function getOptionsTextFromSettings(optionType: string, value: string) {
   switch (optionType) {
     case SLACK_ACTION_TYPES.INITIAL_PROMPT:
@@ -49,14 +75,19 @@ function getOptionsTextFromSettings(optionType: string, value: string) {
       return "Unknown";
   }
 }
+
+/**
+ * Populate the model types  section of the settings block with options.
+ * @return {any} Updated settings block
+ */
 function addInModelTypes() {
   const block: any = settingsBlock;
 
-  for (const [key, value] of Object.entries(GPTStyles)) {
+  for (const [key, value] of Object.entries(OPENAI_MODELS)) {
     const option = {
       text: {
         type: "plain_text",
-        text: GPTStyles[key].name,
+        text: OPENAI_MODELS[key].name,
         emoji: true,
       },
       value: key,
@@ -65,6 +96,12 @@ function addInModelTypes() {
   }
   return block;
 }
+
+/**
+ * Apply user-selected options to the settings block.
+ * @param {any} options
+ * @return {any[]} Updated settings block
+ */
 function applySettingsBlock(options: any = undefined) {
   let block: any[] = addInModelTypes() || [];
 
@@ -141,6 +178,12 @@ function applySettingsBlock(options: any = undefined) {
   }
   return block;
 }
+
+/**
+ * Send a message with a specified text to a specified Slack channel.
+ * @param {string} channel
+ * @param {string} text
+ */
 export async function postToChannel(channel: string, text: string) {
   await axios.post(
     SLACK_URLS.POST_MESSAGE,
@@ -154,6 +197,12 @@ export async function postToChannel(channel: string, text: string) {
   );
 }
 
+/**
+ * Send the prompt block to a specified Slack channel with a specified thread timestamp.
+ * @param {string} channel
+ * @param {string} thread_ts
+ * @param {any} options
+ */
 export async function sendPromptBlock(
   channel: string,
   thread_ts: string,
@@ -179,6 +228,11 @@ export async function sendPromptBlock(
   );
 }
 
+/**
+ * Send the settings block as a response to a specified url.
+ * @param {string} url
+ * @param {any} options
+ */
 export async function sendSettingsBlock(url: string, options: any = undefined) {
   let blocks = applySettingsBlock(options);
   await axios.post(
@@ -189,6 +243,13 @@ export async function sendSettingsBlock(url: string, options: any = undefined) {
     { headers: { "Content-Type": "application/json" } }
   );
 }
+
+/**
+ * Send the settings block as an ephemeral message to specified user and channel.
+ * @param {string} channel
+ * @param {string} user
+ * @param {any} options
+ */
 export async function sendSettingsEpherealBlock(
   channel: string,
   user: string,
@@ -210,6 +271,13 @@ export async function sendSettingsEpherealBlock(
     }
   );
 }
+
+/**
+ * Send a message to a specified channel and thread in Slack.
+ * @param {string} channel
+ * @param {string} thread
+ * @param {string} text
+ */
 export async function sendMessage(
   channel: string,
   thread: string,
@@ -230,6 +298,13 @@ export async function sendMessage(
     }
   );
 }
+
+/**
+ * Send a block to a specified channel and thread in Slack.
+ * @param {string} channel
+ * @param {string} thread_ts
+ * @param {any} blocks
+ */
 export async function sendBlock(
   channel: string,
   thread_ts: string,
@@ -250,6 +325,12 @@ export async function sendBlock(
     }
   );
 }
+
+/**
+ * Get the real name of a Slack user based on their user ID.
+ * @param {string} userId
+ * @return {Promise<string>} Real name of the user
+ */
 export async function userLookup(userId: string = "") {
   const ax = await axios.get(`${SLACK_URLS.GET_USER}${userId}`, {
     headers: {
@@ -260,6 +341,13 @@ export async function userLookup(userId: string = "") {
   return ax.data?.user?.real_name ?? "Name";
 }
 
+/**
+ * Send an image as a message to a specified channel and thread in Slack.
+ * @param {string} channel
+ * @param {string} thread
+ * @param {string} text
+ * @param {string} url
+ */
 export async function sendImage(
   channel: string,
   thread: string,
@@ -289,6 +377,12 @@ export async function sendImage(
   );
 }
 
+/**
+ * Replace an existing message in Slack with a new message with specified text.
+ * @param {string} channel
+ * @param {string} thread
+ * @param {string} text
+ */
 export async function replaceMessage(
   channel: string = "",
   thread: string = "",
@@ -313,6 +407,13 @@ export async function replaceMessage(
   console.log(res);
 }
 
+/**
+ * Replace an existing image message in Slack with a new image message.
+ * @param {string} channel
+ * @param {string} thread
+ * @param {string} text
+ * @param {string} url
+ */
 export async function replaceImage(
   channel: string,
   thread: string,
@@ -342,6 +443,10 @@ export async function replaceImage(
   );
 }
 
+/** Sends image or text buttons.
+ * @param {string} channel
+ * @param {string} thread
+ */
 export async function imageOrTextButtons(channel: string, thread: string) {
   await axios.post(
     SLACK_URLS.POST_MESSAGE,
@@ -383,6 +488,12 @@ export async function imageOrTextButtons(channel: string, thread: string) {
   );
 }
 
+/**
+ * Get a Slack chat thread by specified channel and message timestamp.
+ * @param {string} channel
+ * @param {string} ts
+ * @return {Promise<any>} Slack chat thread
+ */
 export async function getChatThread(channel: string, ts: string) {
   const ax = await axios.get(
     `${SLACK_URLS.GET_CHAT_THREAD}?channel=${channel}&ts=${ts}`,
@@ -396,6 +507,13 @@ export async function getChatThread(channel: string, ts: string) {
   return ax.data;
 }
 
+/**
+ * Send an image with buttons to a specified channel and thread in Slack.
+ * @param {string} channel
+ * @param {string} thread
+ * @param {string} text
+ * @param {string} url
+ */
 export async function sendImageWithButtons(
   channel: string,
   thread: string,

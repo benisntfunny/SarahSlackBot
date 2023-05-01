@@ -1,9 +1,10 @@
-/** @format */
-
+// Import SLACK_ACTION_TYPES from the static file
 import { SLACK_ACTION_TYPES } from "../static";
 
+// Define the 'prompt' object
 export const prompt = {
   blocks: [
+    // Add a section with markdown text
     {
       type: "section",
       text: {
@@ -11,6 +12,7 @@ export const prompt = {
         text: "What can I help you with?",
       },
     },
+    // Add action buttons for 'Image' and 'Chat'
     {
       type: "actions",
       elements: [
@@ -34,9 +36,11 @@ export const prompt = {
         },
       ],
     },
+    // Add a divider
     {
       type: "divider",
     },
+    // Add 'Settings' button and a checkbox for 'Don't ask me again'
     {
       type: "actions",
       elements: [
@@ -44,8 +48,8 @@ export const prompt = {
           type: "button",
           text: {
             type: "plain_text",
-            text: "Settings",
             emoji: true,
+            text: "Settings",
           },
           value: SLACK_ACTION_TYPES.NEW_CHAT_SETTINGS,
           action_id: SLACK_ACTION_TYPES.OPEN_SETTINGS,
@@ -71,7 +75,10 @@ export const prompt = {
     },
   ],
 };
+
+// Define 'settingsBlock' array
 export const settingsBlock = [
+  // Add radio buttons for Initial Prompt Options
   {
     type: "input",
     element: {
@@ -110,9 +117,11 @@ export const settingsBlock = [
       emoji: true,
     },
   },
+  // Add a divider
   {
     type: "divider",
   },
+  // Add a header for Chat Settings
   {
     type: "header",
     text: {
@@ -121,6 +130,7 @@ export const settingsBlock = [
       emoji: true,
     },
   },
+  // Add context text about the options effect
   {
     type: "context",
     elements: [
@@ -130,6 +140,7 @@ export const settingsBlock = [
       },
     ],
   },
+  // Add a section for Chat Model selection
   {
     type: "section",
     text: {
@@ -147,6 +158,7 @@ export const settingsBlock = [
       action_id: SLACK_ACTION_TYPES.CHAT_MODEL,
     },
   },
+  // Add a section for Preset chat style selection
   {
     type: "section",
     text: {
@@ -213,6 +225,7 @@ export const settingsBlock = [
       action_id: SLACK_ACTION_TYPES.CHAT_STYLE_PRESET,
     },
   },
+  // Add context text about custom chat style instructions
   {
     type: "context",
     elements: [
@@ -222,6 +235,7 @@ export const settingsBlock = [
       },
     ],
   },
+  // Add plain text input for custom chat style overrides
   {
     dispatch_action: true,
     type: "input",
@@ -235,9 +249,11 @@ export const settingsBlock = [
       emoji: true,
     },
   },
+  // Add a divider
   {
     type: "divider",
   },
+  // Add a checkbox for 'Don't remind about settings'
   {
     type: "actions",
     elements: [
@@ -260,25 +276,4 @@ export const settingsBlock = [
       },
     ],
   },
-  /*
-  
-    {
-      type: "divider",
-    },
-    {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "Close Settings",
-            emoji: true,
-          },
-          value: "done",
-          action_id: SLACK_ACTION_TYPES.CLOSE_SETTINGS,
-        },
-      ],
-    },
-    */
 ];

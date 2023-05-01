@@ -21,6 +21,7 @@ import { convertBufferToJSON } from "../utilities/text";
 
 const SARAH_ID = ENV.SARAH_ID?.replace("@", "");
 
+// Function to write events into DynamoDB
 async function writeEvent(referenceId: string, type: string, payload: any) {
   return await writeToDynamoDB(ENV.INCOMING_TABLE, {
     referenceId,
@@ -30,26 +31,25 @@ async function writeEvent(referenceId: string, type: string, payload: any) {
     nextTable: ENV.OUTGOING_TABLE,
   });
 }
-/**
- * Looks for new messages and replies and writes them to DynamoDB
- * @param event
- * @returns
- */
 
+// Helper function to retrieve settings (currently empty)
 async function getSettings(clientId: string) {}
 
+// Handler function for processing new messages and replies
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   if (!isAuthorized(event)) {
     return unauthorized({ error: "Unauthorized" });
   }
   const body = getJSONBody(event);
   const messageType = eventType(event);
+  // Write new messages to DynamoDB
   if (messageType === SLACK_TYPES.NEW_MESSAGE) {
     await writeEvent(
       body.event.thread_ts ?? body.event.event_ts,
       SLACK_TYPES.NEW_MESSAGE,
       body
     );
+    // Write replies to DynamoDB
   } else if (messageType === SLACK_TYPES.REPLY) {
     const item = await readItemFromDynamoDB(ENV.INCOMING_TABLE, {
       referenceId: body?.event?.thread_ts,
@@ -72,6 +72,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   return success({ challenge: body.challenge });
 };
 
+// Helper functions to detect add and not-add actions
 function isItAddAction(actions: any) {
   return actions.find((action: any) => {
     return action.value === SLACK_ACTION_TYPES.ADD_TO_SFMC;
@@ -82,15 +83,12 @@ function isItNotAddAction(actions: any) {
     (action: any) => action.value === SLACK_ACTION_TYPES.NO_TO_SFMC
   );
 }
-/**
- * Responds to a Slack action
- * @param event
- * @returns
- */
+
+// Responds to a Slack action
 export async function click(event: any) {
   const body = event?.body;
   let json = convertBufferToJSON(body);
-  //console.log(json);
+  // Write add or not-add actions to DynamoDB
   if (
     isItAddAction(json.actions ?? []) ||
     isItNotAddAction(json.actions ?? [])
@@ -104,7 +102,7 @@ export async function click(event: any) {
       payload: json,
       nextTable: ENV.OUTGOING_TABLE,
     });
-    //See if a user is updating their settings
+    // Check for user updating their settings
   } else if (
     [SLACK_ACTION_TYPES.OPEN_SETTINGS].includes(json.actions[0].action_id)
   ) {
@@ -117,6 +115,7 @@ export async function click(event: any) {
       json.user.id,
       userSettings
     );
+    // Handle chat styles and settings update
   } else if (
     [
       SLACK_ACTION_TYPES.CHAT_STYLE_PRESET,
@@ -125,26 +124,21 @@ export async function click(event: any) {
       SLACK_ACTION_TYPES.CHAT_MODEL,
     ].includes(json.actions[0].action_id)
   ) {
-    // Get the user's existing settings if any
     const userSettings = await readItemFromDynamoDB(ENV.SETTINGS, {
       clientId: json.user.id,
       type: SETTINGS_TYPES.BOT_SETTINGS,
     });
-    // Create a new record to insert
     let insertRecord: any = {
       clientId: json.user.id,
       type: SETTINGS_TYPES.BOT_SETTINGS,
     };
-    // If there are existing settings, add them to the new record
     if (userSettings) {
       insertRecord = { ...userSettings };
     }
-    // Add the new setting to the record if it's an array item
     if (SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE !== json.actions[0].action_id) {
       insertRecord[json.actions[0].action_id] =
         json.actions[0].selected_option.value;
     } else {
-      //set the chat style override to the value of the text input
       if (json.actions[0].value) {
         insertRecord[json.actions[0].action_id] = json.actions[0].value.replace(
           /\+/g,
@@ -152,7 +146,6 @@ export async function click(event: any) {
         );
       } else delete insertRecord[json.actions[0].action_id];
     }
-    //insert the new record
     await writeToDynamoDB(ENV.SETTINGS, insertRecord);
   } else if (json.actions[0].action_id === SLACK_ACTION_TYPES.CLOSE_SETTINGS) {
     return success({
@@ -161,31 +154,11 @@ export async function click(event: any) {
       replace_original: true,
       delete_original: true,
     });
-  } else if (
-    json.actions[0].action_id === SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER
-  ) {
-    const userSettings =
-      (await readItemFromDynamoDB(ENV.SETTINGS, {
-        clientId: json.user.id,
-        type: SETTINGS_TYPES.BOT_SETTINGS,
-      })) || {};
-    // Create a new record to insert
-    let insertRecord: any = {
-      clientId: json.user.id,
-      type: SETTINGS_TYPES.BOT_SETTINGS,
-    };
-    if (userSettings) {
-      insertRecord = { ...userSettings };
-    }
-
-    insertRecord[json.actions[0].action_id] = json.actions[0].selected_options;
-
-    await writeToDynamoDB(ENV.SETTINGS, insertRecord);
+    // Handle start chat or create image actions
   } else if (
     json.actions[0].value === SLACK_ACTION_TYPES.START_CHAT ||
     json.actions[0].value === SLACK_ACTION_TYPES.CREATE_IMAGE
   ) {
-    console.log(json);
     const message: UserMessage = new UserMessage(
       json,
       json.actions[0].value === SLACK_ACTION_TYPES.START_CHAT
@@ -196,12 +169,6 @@ export async function click(event: any) {
     message.text = thread?.messages?.[0]?.text;
     message.message_ts = thread?.messages?.[1]?.ts;
     await message.cleanseText();
-    console.log(
-      json.actions[0].value === SLACK_ACTION_TYPES.START_CHAT
-        ? SLACK_TYPES.NEW_MESSAGE_SKIP_PROMPT
-        : SLACK_TYPES.NEW_IMAGE_SKIP_PROMPT
-    );
-
     await writeToDynamoDB(
       ENV.INCOMING_TABLE,
       await writeToDynamoDB(ENV.INCOMING_TABLE, {
@@ -219,9 +186,12 @@ export async function click(event: any) {
   }
   return successPlain("");
 }
+
+// Function to determine the event type
 export function eventType(event: any) {
   const body = getJSONBody(event);
 
+  // Determine if event type is a new message
   if (
     (body?.event?.type === SLACK_TYPES.APP_MENTION &&
       body?.event?.user !== SARAH_ID) ||
@@ -231,6 +201,7 @@ export function eventType(event: any) {
       !body.event?.thread_ts)
   ) {
     return SLACK_TYPES.NEW_MESSAGE;
+    // Determine if event type is a reply
   } else if (
     body?.event?.type === SLACK_TYPES.MESSAGE &&
     !body?.event?.subtype &&

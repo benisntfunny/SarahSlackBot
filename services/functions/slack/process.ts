@@ -1,5 +1,6 @@
 /** @format */
 
+// Import necessary libraries and utilities
 import axios from "axios";
 import {
   sarahRemover,
@@ -17,7 +18,7 @@ import { dalleToMC } from "../utilities/sfmc";
 import { successPlain } from "../utilities/responses";
 import {
   ENV,
-  GPTStyles,
+  OPENAI_MODELS,
   SETTINGS_TYPES,
   SLACK_ACTION_TYPES,
   SLACK_COMMANDS,
@@ -30,15 +31,26 @@ import {
   writeToDynamoDB,
 } from "../utilities/aws";
 import { ProcessingActions } from "./processingActions";
+
+// Define sarahId by replacing "@" with an empty string
 const sarahId = ENV.SARAH_ID.replace("@", "");
 
+// Define the handler function
 export const handler = async (event: any) => {
   try {
+    // Get the related records from event
     const { Records } = event;
+
+    // Get new images from the retrieved records
     const newImages: any = getNewRecord(Records);
+
+    // Get the first incoming image
     const incoming = newImages[0];
+
+    // Get payload from the incoming image
     const payload = incoming?.payload || {};
-    // Check if we are looking at a message or a reply
+
+    // Process new message, new_image_skip_prompt or reply type events
     if (
       incoming?.type === SLACK_TYPES.NEW_MESSAGE ||
       payload.type === SLACK_TYPES.NEW_MESSAGE_SKIP_PROMPT
@@ -52,7 +64,10 @@ export const handler = async (event: any) => {
     } else if (incoming?.type === SLACK_TYPES.REPLY && payload) {
       const pa = new ProcessingActions(payload, incoming);
       await pa.replyMessage();
-    } else if (incoming.command === SLACK_COMMANDS.WRITE) {
+    }
+
+    // Process write command
+    else if (incoming.command === SLACK_COMMANDS.WRITE) {
       let text = await swapOutIds(
         addPeriod(sarahRemover(incoming.text.replace(/@/g, "")))
       );
@@ -62,11 +77,11 @@ export const handler = async (event: any) => {
           type: SETTINGS_TYPES.BOT_SETTINGS,
         })) || {};
       const model = settings[SLACK_ACTION_TYPES.CHAT_MODEL]
-        ? GPTStyles[settings[SLACK_ACTION_TYPES.CHAT_MODEL]].model
-        : GPTStyles.CHAT_GPT.model;
+        ? OPENAI_MODELS[settings[SLACK_ACTION_TYPES.CHAT_MODEL]].model
+        : OPENAI_MODELS.CHAT_GPT.model;
       const userName = await userLookup(incoming.user_id);
       const settingsText = await buildSettingsText(settings);
-      const instruction = `${settingsText}. My name is ${userName}. You, the assistant, is named Sarah. Do not mention or allude to being an AI Model`;
+      const instruction = `${settingsText}. My name is ${userName}. You, the assistant, is named Sarah.`;
       const response = await chatGPT(
         [
           {
@@ -81,7 +96,9 @@ export const handler = async (event: any) => {
         incoming.response_url,
         `<@${incoming.user_id}>\n\n${incoming.text}\n<@${sarahId}>${response}`
       );
-    } else if (incoming.command === SLACK_COMMANDS.IMAGE) {
+    }
+    // Process image command
+    else if (incoming.command === SLACK_COMMANDS.IMAGE) {
       const text = incoming.text.replace(/@/g, "");
 
       const response = (
@@ -105,14 +122,18 @@ export const handler = async (event: any) => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-    } else if (incoming.command === "/settings") {
+    }
+
+    // Process "/settings" command
+    else if (incoming.command === "/settings") {
       const userSettings = await readItemFromDynamoDB(ENV.SETTINGS, {
         clientId: incoming.user_id,
         type: SETTINGS_TYPES.BOT_SETTINGS,
       });
       await sendSettingsBlock(incoming.response_url, userSettings);
-      //sendBlock(incoming.response_url, );
-    } else if (incoming.type === SLACK_ACTION_TYPES.ADD_TO_SFMC) {
+    }
+    // Process add_to_sfmc action
+    else if (incoming.type === SLACK_ACTION_TYPES.ADD_TO_SFMC) {
       const image: any = await dalleToMC(
         incoming.payload.original_message.attachments[0].image_url,
         incoming.payload.original_message.attachments[0].text.replace(
@@ -158,7 +179,9 @@ export const handler = async (event: any) => {
         incoming.payload.original_message.thread_ts,
         blocks
       );
-    } else if (incoming.type === SLACK_ACTION_TYPES.NO_TO_SFMC) {
+    }
+    // Process no_to_sfmc action
+    else if (incoming.type === SLACK_ACTION_TYPES.NO_TO_SFMC) {
       await replaceImage(
         incoming.payload.channel.id,
         incoming.payload.message_ts,
@@ -175,5 +198,6 @@ export const handler = async (event: any) => {
     console.error(err);
   }
 
+  // Return success response
   return successPlain();
 };
