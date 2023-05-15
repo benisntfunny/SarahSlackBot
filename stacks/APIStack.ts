@@ -161,14 +161,7 @@ export function APIStack({ stack }: StackContext) {
     requestTable: requestsTable.tableName,
     inTable: inTable.tableName,
   };
-  // Create the HTTP API
-  const api = new Api(stack, "Api", {
-    /*
-    customDomain: {
-      domainName: "sarah.botsco.net",
-      hostedZone: "botsco.net",
-    },
-    */
+  let apiConfig: any = {
     defaults: {
       authorizer: "iam",
       function: {
@@ -257,7 +250,15 @@ export function APIStack({ stack }: StackContext) {
         authorizer: "none",
       },
     },
-  });
+  };
+
+  if (!process.env.adam) {
+    apiConfig.customDomain = {
+      domainName: "sarah.botsco.net",
+      hostedZone: "botsco.net",
+    };
+  }
+  const api = new Api(stack, "Api", apiConfig);
 
   api.attachPermissions([
     inTable,

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./build-env.js && sst start",
-    "start-a": "node ./build-env.js && sst start --stage adam",
+    "start-a": "node ./build-env.js && echo '\nadam=true' >> .env && sst start --stage adam",
     "build": "node ./build-env.js && sst build",
     "deploy": "node ./build-env.js && sst deploy",
     "remove": "sst remove",
