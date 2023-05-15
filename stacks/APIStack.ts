@@ -163,10 +163,12 @@ export function APIStack({ stack }: StackContext) {
   };
   // Create the HTTP API
   const api = new Api(stack, "Api", {
+    /*
     customDomain: {
       domainName: "sarah.botsco.net",
       hostedZone: "botsco.net",
     },
+    */
     defaults: {
       authorizer: "iam",
       function: {
