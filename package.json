@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "start": "node ./build-env.js && sst start",
-    "start-a": "node ./build-env.js && echo '\nadam=true' >> .env && sst start --stage adam",
+    "start-a": "node ./build-env.js && echo '\nadam=true' >> .env && sst start --stage alocal",
     "build": "node ./build-env.js && sst build",
     "deploy": "node ./build-env.js && sst deploy",
+    "deploy-a": "node ./build-env.js && echo '\nadam=true' >> .env && sst deploy --stage alocal",
     "remove": "sst remove",
     "console": "sst console",
     "typecheck": "tsc --noEmit"
