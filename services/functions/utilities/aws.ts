@@ -11,6 +11,23 @@ const dynamoDB = new AWS.DynamoDB();
 const dynamoDb = new DynamoDB.DocumentClient();
 const s3 = new AWS.S3({ apiVersion: "2006-03-01" });
 
+export async function listBucket(Bucket: string, Prefix: string = "") {
+  try {
+    return await s3.listObjects({ Bucket, Prefix }).promise();
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+export async function getFile(Bucket: string, Key: string) {
+  return (await s3.getObject({ Bucket, Key }).promise())?.Body;
+}
+export async function saveFile(Bucket: string, Key: string, Body: any) {
+  return await s3.putObject({ Bucket, Key, Body }).promise();
+}
+export async function deleteFile(Bucket: string, Key: string) {
+  return await s3.deleteObject({ Bucket, Key }).promise();
+}
 /**
  * Function: dallUrlToS3
  * Description: Takes an image URL, retrieves the image,

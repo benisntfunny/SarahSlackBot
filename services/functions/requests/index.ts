@@ -54,12 +54,12 @@ export const request = async (event: any) => {
       addToArrayAndLimitSize(dbUser.history, sessionId, 10);
       await writeToDynamoDB(ENV.USER_TABLE, dbUser);
     }
-    data.messages.push(response);
+    data.push({ role: "assistant", content: response });
     await writeToDynamoDB(ENV.SESSSION_TABLE, {
       sessionId,
       userId: user.id,
       appId,
-      history: data.messages,
+      history: data,
       lastReferenceId: referenceId,
     });
 

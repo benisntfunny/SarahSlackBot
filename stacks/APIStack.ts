@@ -7,7 +7,7 @@ export function APIStack({ stack }: StackContext) {
     timeout: 300,
     memorySize: 512,
   });
-
+  const layerArn = "arn:aws:lambda:us-east-1:764866452798:layer:ghostscript:6";
   const bucket = new Bucket(stack, "Storage", {
     cors: [
       {
@@ -120,6 +120,9 @@ export function APIStack({ stack }: StackContext) {
             "s3:*",
             SESSION_TABLE,
             USER_SESSION_TABLE,
+            SESSION_TABLE,
+            USER_SESSION_TABLE,
+            USERS_TABLE,
           ],
         },
       },
@@ -146,6 +149,8 @@ export function APIStack({ stack }: StackContext) {
             USERS_TABLE,
             SESSION_TABLE,
             USER_SESSION_TABLE,
+            requestsTable,
+            responseTable,
           ],
         },
       },
@@ -167,6 +172,7 @@ export function APIStack({ stack }: StackContext) {
       function: {
         timeout: 300,
         environment,
+        layers: [layerArn],
       },
     },
 
@@ -240,6 +246,14 @@ export function APIStack({ stack }: StackContext) {
       "POST /apps/files": "functions/files/index.handler",
       "GET /apps/files": "functions/files/index.handler",
       "DELETE /apps/files": "functions/files/index.handler",
+      "POST /hooks": {
+        function: "functions/hooks/index.handler",
+        authorizer: "none",
+      },
+      "POST /files": {
+        function: "functions/files/index.handler",
+        authorizer: "none",
+      },
     },
   });
 

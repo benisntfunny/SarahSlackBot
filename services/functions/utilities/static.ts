@@ -28,6 +28,7 @@ export const SLACK_TYPES: { [key: string]: string } = {
 export const SLACK_COMMANDS: { [key: string]: string } = {
   WRITE: "/write",
   IMAGE: "/image",
+  MERGE: "/merge",
 };
 
 // Define an object with key-value pairs for different HTTPS response codes
@@ -75,7 +76,9 @@ export const OPENAI_MODELS: any = {
     model: "text-davinci-003",
   },
 };
-
+export const FILE_ACTIONS: any = {
+  SLACK_MERGE: "slack-merge",
+};
 // Define an object with key-value pairs for different slack action types
 export const SLACK_ACTION_TYPES: { [key: string]: string } = {
   ADD_TO_SFMC: "AddToSFMC",

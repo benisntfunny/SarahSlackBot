@@ -122,6 +122,12 @@ export const handler = async (event: any) => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
+    } else if (incoming.command === SLACK_COMMANDS.MERGE) {
+      const urlParts = incoming.response_url.split("/");
+      await axios.post(incoming.response_url, {
+        text: `Upload your files here:\nhttps://chat.mysarah.net/slack/merge/${incoming.user_id}/${urlParts[4]}/${urlParts[5]}/${urlParts[6]}`,
+      });
+      return successPlain("Success");
     }
 
     // Process "/settings" command

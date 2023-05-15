@@ -31,7 +31,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
   // Generate a hash key for the record
   const key = hashKey();
-
+  console.log(text);
   // Write the record to the DynamoDB table
   await writeToDynamoDB(ENV.INCOMING_TABLE, {
     referenceId: key,

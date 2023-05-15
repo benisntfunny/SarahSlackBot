@@ -3,15 +3,33 @@
 // Import required modules
 import { Configuration, OpenAIApi } from "openai";
 import axios from "axios";
-import { dallUrlToS3 } from "./aws";
+import { dallUrlToS3, readItemFromDynamoDB, writeToDynamoDB } from "./aws";
 import { dalleToMC } from "./sfmc";
 import { ENV, OPENAI_MODELS, OPENAPI_URLS, SLACK_ACTION_TYPES } from "./static";
+
+async function getKey() {
+  let index: any = (
+    await readItemFromDynamoDB(ENV.SETTINGS, {
+      clientId: "slackbot",
+      type: "index",
+    })
+  )?.index;
+  index = index ?? 0;
+
+  await writeToDynamoDB(ENV.SETTINGS, {
+    clientId: "slackbot",
+    type: "index",
+    index: index === 0 ? 1 : 0,
+  });
+  return ENV.OPENAI_API_KEY.split(",")[index];
+}
 
 // GPT3 function to create text completion
 export async function GPT3(text: string, model: string): Promise<any> {
   // Initialize the configuration with the API key
+  const apiKey = await getKey();
   const configuration = new Configuration({
-    apiKey: ENV.OPENAI_API_KEY,
+    apiKey,
   });
   // Create an instance of the OpenAIApi
   const openai = new OpenAIApi(configuration);
@@ -61,7 +79,7 @@ export async function chatGPT(
     {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${ENV.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${await getKey()}`,
       },
     }
   );
@@ -123,7 +141,7 @@ export async function dalle(
     url: OPENAPI_URLS.IMAGE_GENERATION,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${ENV.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${await getKey()}`,
     },
     data: data,
   };
@@ -156,7 +174,7 @@ export async function dalleS3(
     url: OPENAPI_URLS.IMAGE_GENERATION,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${ENV.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${await getKey()}`,
     },
     data: data,
   };

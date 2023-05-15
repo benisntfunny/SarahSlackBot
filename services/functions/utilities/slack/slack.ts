@@ -3,6 +3,7 @@
 import axios from "axios";
 import { ENV, SLACK_ACTION_TYPES, SLACK_URLS, OPENAI_MODELS } from "../static";
 import { settingsBlock, prompt } from "./blocks";
+import FormData from "form-data";
 
 // Get the Sarah user token from the environment
 const USER_TOKEN = ENV.SARAH_TOKEN;
@@ -242,6 +243,30 @@ export async function sendSettingsBlock(url: string, options: any = undefined) {
     },
     { headers: { "Content-Type": "application/json" } }
   );
+}
+
+export async function fileUpload(
+  channels: string[] = [],
+  filename: string,
+  file: any
+) {
+  const form = new FormData();
+  form.append("token", USER_TOKEN);
+  form.append("channels", channels[0]);
+  form.append("file", file, {
+    filename,
+    contentType: "application/octet-stream",
+  });
+  form.append("filename", filename);
+
+  const response = await axios.post(
+    `https://slack.com/api/files.upload`,
+    form,
+    {
+      headers: form.getHeaders(),
+    }
+  );
+  return response;
 }
 
 /**

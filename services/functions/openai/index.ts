@@ -21,7 +21,7 @@ export const proxy = async (event: any) => {
   }
   const referenceId = hashKey();
   if (action === REQUEST_ACTIONS.INITIATE_CONVERSATION) {
-    const system = `You are an assistant named Sarah. It is required to have all responses in JSON format so it can be parsed programmatically. Here is the schema to follow. All table type information should be || delimited format. Use Markdown to format any text and syntax highlighting for code.
+    const system = `You are an assistant named Sarah. It is required to have all responses in JSON format so it can be parsed programmatically. Here is the schema to follow. All table type information should be  "||" delimited format with linebreaks to separate rows. Wrap, break, concatenate all long code that might expand beyond a 800px window on a page. Use Markdown to format any text and syntax highlighting for code. Do not respond with anything that isn't part of the JSON schema.
   [
     {"type": "text",
      "content": "this is for any text to display on the screen such as a response or information to be provided"
@@ -62,5 +62,5 @@ export const proxy = async (event: any) => {
 
   //console.log({ data: response });
 
-  return success({ requestId: referenceId });
+  return success({ referenceId });
 };
