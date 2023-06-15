@@ -1,6 +1,12 @@
 /** @format */
 
-import { Api, StackContext, Table, Bucket } from "@serverless-stack/resources";
+import {
+  Api,
+  StackContext,
+  Table,
+  Bucket,
+  Topic,
+} from "@serverless-stack/resources";
 
 export function APIStack({ stack }: StackContext) {
   stack.setDefaultFunctionProps({
@@ -100,8 +106,34 @@ export function APIStack({ stack }: StackContext) {
     AZURE_DOMAIN: process.env.AZURE_DOMAIN || "",
     DEFAULT_APP_ID: process.env.DEFAULT_APP_ID || "",
     DEFAULT_IMAGE_SIZE: process.env.DEFAULT_IMAGE_SIZE || "",
+    WHATSAPP_PASSWORD: process.env.WHATSAPP_PASSWORD || "",
+    WHATSAPP_USERNAME: process.env.WHATSAPP_USERNAME || "",
+    AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE: "1",
   };
-
+  const fileTopic = new Topic(stack, "fileTopic", {
+    defaults: {
+      function: {
+        timeout: 600,
+        permissions: [
+          outTable,
+          "s3:*",
+          DALLE_HISTORY,
+          settings,
+          USERS_TABLE,
+          SESSION_TABLE,
+          USER_SESSION_TABLE,
+          responseTable,
+          "textract:*",
+          "sns:*",
+          "dynamodb:*",
+        ],
+        environment,
+      },
+    },
+    subscribers: {
+      subscriber1: "../services/functions/files/index.handler",
+    },
+  });
   const requestsTable = new Table(stack, "AppRequests", {
     fields: {
       referenceId: "string",
@@ -121,8 +153,12 @@ export function APIStack({ stack }: StackContext) {
             SESSION_TABLE,
             USER_SESSION_TABLE,
             SESSION_TABLE,
+            settings,
             USER_SESSION_TABLE,
             USERS_TABLE,
+            "sns:*",
+            "textract:*",
+            "dynamodb:*",
           ],
         },
       },
@@ -151,6 +187,9 @@ export function APIStack({ stack }: StackContext) {
             USER_SESSION_TABLE,
             requestsTable,
             responseTable,
+            "textract:*",
+            "sns:*",
+            "dynamodb:*",
           ],
         },
       },
@@ -160,6 +199,7 @@ export function APIStack({ stack }: StackContext) {
     ...environment,
     requestTable: requestsTable.tableName,
     inTable: inTable.tableName,
+    FILE_TOPIC: fileTopic.topicArn,
   };
   let apiConfig: any = {
     defaults: {
@@ -249,6 +289,13 @@ export function APIStack({ stack }: StackContext) {
         function: "functions/files/index.handler",
         authorizer: "none",
       },
+      /*
+      "POST /doc-tools": {
+        function: "functions/files/python.main",
+        authorizer: "none",
+        runtime: "python3.8",
+      },
+      */
     },
   };
 
@@ -272,6 +319,9 @@ export function APIStack({ stack }: StackContext) {
     USER_SESSION_TABLE,
     settings,
     "s3:*",
+    "textract:*",
+    "sns:*",
+    "dynamodb:*",
   ]);
 
   // Show the API endpoint in the output

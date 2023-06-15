@@ -9,7 +9,12 @@ import { getJSONBody } from "functions/utilities/events";
 import { addToArrayAndLimitSize, hashKey } from "functions/utilities/generate";
 import { chatGPT } from "functions/utilities/openai";
 import { success } from "functions/utilities/responses";
-import { APPS, ENV, REQUEST_ACTIONS } from "functions/utilities/static";
+import {
+  APPS,
+  ENV,
+  OPENAI_MODELS,
+  REQUEST_ACTIONS,
+} from "functions/utilities/static";
 
 export const incoming = async (event: any) => {
   const body = getJSONBody(event);
@@ -38,7 +43,7 @@ export const incoming = async (event: any) => {
 };
 
 export const request = async (event: any) => {
-  console.log("incoming event", getNewRecord(event.Records)[0]);
+  //console.log("incoming event", getNewRecord(event.Records)[0]);
   const record = getNewRecord(event.Records)[0];
   let { sessionId, user, referenceId, appId, data, action } = record;
   if (
@@ -78,54 +83,70 @@ export const request = async (event: any) => {
   }
 
   if (appId === APPS.SUBJECTLINE) {
-    await setTimeout(() => {
-      writeToDynamoDB(ENV.RESPONSES_TABLE, {
-        referenceId: record.referenceId,
-        appId: record.appId,
-        data: [
-          {
-            sl: "Subject Line 1",
-            score: 0.5,
-          },
-          {
-            sl: "Subject Line 2",
-            score: 0.45,
-          },
-          {
-            sl: "Subject Line 3",
-            score: 0.44,
-          },
-          {
-            sl: "Subject Line 4",
-            score: 0.42,
-          },
-          {
-            sl: "Subject Line 5",
-            score: 0.3,
-          },
-          {
-            sl: "Subject Line 6",
-            score: 0.29,
-          },
-          {
-            sl: "Subject Line 7",
-            score: 0.28,
-          },
-          {
-            sl: "Subject Line 8",
-            score: 0.24,
-          },
-          {
-            sl: "Subject Line 9",
-            score: 0.2,
-          },
-          {
-            sl: "Subject Line 10",
-            score: 0.14,
-          },
-        ],
-      }).then(() => {});
-    }, 10000);
+    const request = [
+      {
+        role: "user",
+        content: `I have to generate subject lines based on this JSON instruction set ${JSON.stringify(
+          record.data
+        )}\n\n Respond back with only subject lines and other accompanying description of text. Have the subect lines return back in a JSON array of strings. Example ["subject line 1", "subject line 2", "and so on"]
+        
+        Here is the defintions for each property in the JSON structure for the request:
+        - tone: The tone of the subject line
+        - avoidPunctuation: when true do not use any punctuation in the subject line
+        - exampleSubject: A user provided subject line that fits the overall messaging that other subject lines should loosely reference to generate new subject lines
+        - numberToGenerate: total subject lines that should be created
+        - topic: The explanation of what we are trying to speak to with these subject lines
+        - industry: the industry that these subject lines most closely align to
+        - optionalEmoji: when true the subject line can and, for at least some, use emojis
+        - maxLength: The subject line should not exceed this length
+        `,
+      },
+    ];
+    //console.log(request);
+    const response = JSON.parse(
+      await chatGPT(request, OPENAI_MODELS.GPT4.model)
+    );
+    //console.log(JSON.parse(response), JSON.parse(response).length);
+    /*
+    let response = [
+      "New Pants with Built-in Diapers - Say Goodbye to Bathroom Trips!",
+      "Experience the Convenience of Diaper Pants for Men!",
+      "Revolutionary Pants for Men: No More Bathroom Breaks!",
+      "Stay Comfortable and Dry All Day Long with Our Diaper Pants!",
+      "Say Hello to the Future of Men's Pants - Built-in Diapers!",
+      "Introducing the Ultimate Solution to Bathroom Breaks - Diaper Pants for Men!",
+      "No More Embarrassing Accidents with Our Diaper Pants for Men!",
+      "Keep Your Confidence High with Diaper Pants for Men!",
+      "Effortlessly Manage Incontinence with Our Men's Diaper Pants!",
+      "Introducing a Game-Changer for Men - Pants with Built-in Diapers!",
+      "Eliminate Bathroom Trips with Our Innovative Men's Pants!",
+      "Stay Comfortable and Confident with Our Diaper Pants for Men!",
+      "Experience the Comfort and Convenience of Diaper Pants for Men!",
+      "End the Worry of Accidents with Our Diaper Pants for Men!",
+      "Discover the Ultimate Comfort with Our Pants featuring Built-in Diapers!",
+      "Say Goodbye to Embarrassment and Hello to Confidence with Our Diaper Pants!",
+      "Smart, Durable, and Convenient - Our Diaper Pants for Men!",
+    ];
+    */
+
+    let orderedResponse = response.map((item: string, index: number) => {
+      return { sl: item, score: (index + 1) * Math.random() * 0.05 };
+    });
+    orderedResponse.sort(function (a: any, b: any) {
+      return b.score - a.score;
+    });
+    console.log({
+      referenceId,
+      appId,
+      sessionId,
+      data: orderedResponse,
+    });
+    await writeToDynamoDB(ENV.RESPONSES_TABLE, {
+      referenceId,
+      appId,
+      sessionId,
+      data: orderedResponse,
+    });
   }
 };
 

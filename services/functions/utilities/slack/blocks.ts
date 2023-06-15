@@ -1,3 +1,5 @@
+/** @format */
+
 // Import SLACK_ACTION_TYPES from the static file
 import { SLACK_ACTION_TYPES } from "../static";
 
@@ -78,49 +80,6 @@ export const prompt = {
 
 // Define 'settingsBlock' array
 export const settingsBlock = [
-  // Add radio buttons for Initial Prompt Options
-  {
-    type: "input",
-    element: {
-      type: "radio_buttons",
-      options: [
-        {
-          text: {
-            type: "plain_text",
-            text: "Prompt for Images or Chat",
-            emoji: true,
-          },
-          value: "prompt",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Chat Only",
-            emoji: true,
-          },
-          value: "chat_only",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Images Only",
-            emoji: true,
-          },
-          value: "images_only",
-        },
-      ],
-      action_id: SLACK_ACTION_TYPES.INITIAL_PROMPT,
-    },
-    label: {
-      type: "plain_text",
-      text: "Initial Prompt Options",
-      emoji: true,
-    },
-  },
-  // Add a divider
-  {
-    type: "divider",
-  },
   // Add a header for Chat Settings
   {
     type: "header",
@@ -158,7 +117,6 @@ export const settingsBlock = [
       action_id: SLACK_ACTION_TYPES.CHAT_MODEL,
     },
   },
-  // Add a section for Preset chat style selection
   {
     type: "section",
     text: {

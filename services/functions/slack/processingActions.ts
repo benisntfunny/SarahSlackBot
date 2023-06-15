@@ -2,7 +2,7 @@
 
 // Import required libraries and utilities
 import { readItemFromDynamoDB, writeToDynamoDB } from "../utilities/aws";
-import { buildSettingsText, chatGPT, dalleS3, GPT3 } from "../utilities/openai";
+import { buildSettingsText, chatGPT, dalleS3 } from "../utilities/openai";
 import {
   replaceMessage,
   sarahRemover,
@@ -111,7 +111,7 @@ export class ProcessingActions {
     });
   }
 
-  // Get a new GPT-3 message
+  /* Get a new GPT-3 message
   async newGPT3Message(replace: boolean = false) {
     // Modify the text to include instruction
     this.text = "Note: " + this.instruction + "-------\n\n" + this.text;
@@ -129,6 +129,7 @@ export class ProcessingActions {
       await replaceMessage(this.payload.channel, this.message_ts, response);
     }
   }
+  */
 
   // Get a new ChatGPT message
   async newChatGPTMessage(replace: boolean = false) {
@@ -139,9 +140,57 @@ export class ProcessingActions {
           role: "system",
           content: this.instruction,
         },
-        { role: "user", content: this.text },
+        {
+          role: "user",
+          content: this.text,
+        },
       ],
-      this.model
+      this.model,
+      [
+        {
+          name: "generate_image",
+          description: "Generates an image when a user requests it",
+          parameters: {
+            type: "object",
+            properties: {
+              prompt: {
+                type: "string",
+                description:
+                  "The text provided to generate an image from removing any reference to 'an image' or 'a picture', etc. Just the prompt text to generate the image",
+              },
+            },
+            required: ["prompt"],
+          },
+        },
+        /*{
+          name: "sentiment_trigger",
+          description:
+            "Sends the perceived sentiment level of a user if they are angry, frustrated, upset, manic, any negative sentiment. Still sends a response back to the user",
+          parameters: {
+            type: "object",
+            properties: {
+              sentiment_type: {
+                type: "string",
+                description: "The description of the sentiment",
+              },
+              content: {
+                type: "string",
+                description: "The response to the original message",
+              },
+              reasoning: {
+                type: "string",
+                description: "The reasoning for assigning the sentiment",
+              },
+              keywords: {
+                type: "string",
+                description:
+                  "The keywords that triggered the sentiment delimited by comma",
+              },
+            },
+            required: ["sentiment_type", "content", "reasoning", "keywords"],
+          },
+        },*/
+      ]
     );
 
     // Save history and send the response
@@ -170,6 +219,7 @@ export class ProcessingActions {
     }
   }
 
+  /*
   // Reply to GPT-3 message
   async replyGPT3Message() {
     // Prepare text and generate GPT-3 response
@@ -191,6 +241,7 @@ export class ProcessingActions {
       response
     );
   }
+  */
 
   // Reply to ChatGPT message
   async replyChatGPTMessage() {
@@ -206,16 +257,6 @@ export class ProcessingActions {
       this.payload.event.event_ts,
       response
     );
-  }
-
-  // Check if the message needs a prompt
-  needsPrompt() {
-    if (
-      !this.settings[SLACK_ACTION_TYPES.INITIAL_PROMPT] ||
-      this.settings[SLACK_ACTION_TYPES.INITIAL_PROMPT] === "prompt"
-    )
-      return true;
-    else return false;
   }
 
   // Request a new image
@@ -238,17 +279,9 @@ export class ProcessingActions {
 
   // Post a new message
   async newMessage(skipPrompt: boolean = false) {
-    // Prepare incoming message data and check if a prompt is needed
     await this.prepIncomingMessageData();
-    if (this.needsPrompt() && !skipPrompt) {
-      await this.promptForNextAction();
-    } else {
-      if (this.model === OPENAI_MODELS.GPT3.model) {
-        await this.newGPT3Message(skipPrompt);
-      } else {
-        await this.newChatGPTMessage(skipPrompt);
-      }
-    }
+
+    await this.newChatGPTMessage(skipPrompt);
   }
 
   // Send a new message without prompt
@@ -274,10 +307,11 @@ export class ProcessingActions {
 
     // Assign referenceId and invoke reply methods based on the model
     this.referenceId = this.incoming.referenceId;
-    if (this.model === OPENAI_MODELS.GPT3.model) {
-      await this.replyGPT3Message();
-    } else {
-      await this.replyChatGPTMessage();
-    }
+    //if (this.model === OPENAI_MODELS.GPT3.model) {
+    //  await this.replyGPT3Message();
+    //} else {
+    //GPT3 is not supported
+    await this.replyChatGPTMessage();
+    //}
   }
 }

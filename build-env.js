@@ -1,7 +1,6 @@
 /** @format */
-
-const fs = require("fs");
-const AWS = require("aws-sdk");
+import fs from "fs";
+import AWS from "aws-sdk";
 AWS.config.update({ region: "us-east-1" });
 const ssm = new AWS.SSM({ apiVersion: "2014-11-06" });
 const parameter = "sarahbot";

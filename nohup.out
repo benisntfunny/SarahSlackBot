@@ -1,0 +1,9 @@
+
+> sarah-bot@1.0.0 start
+> node ./build-env.js && sst start
+
+.env created
+Using stage: botsco
+Preparing your SST app
+Bootstrapping SST in the "us-east-1" region
+

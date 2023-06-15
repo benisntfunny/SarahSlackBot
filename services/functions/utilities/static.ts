@@ -29,6 +29,8 @@ export const SLACK_COMMANDS: { [key: string]: string } = {
   WRITE: "/write",
   IMAGE: "/image",
   MERGE: "/merge",
+  SUMMARRY: "/summarize",
+  SETTINGS: "/settings",
 };
 
 // Define an object with key-value pairs for different HTTPS response codes
@@ -65,19 +67,16 @@ export const SLACK_URLS: { [key: string]: string } = {
 export const OPENAI_MODELS: any = {
   GPT4: {
     name: "GPT4",
-    model: "gpt-4",
+    model: "gpt-4-0613",
   },
   CHAT_GPT: {
     name: "ChatGPT",
-    model: "gpt-3.5-turbo",
-  },
-  GPT3: {
-    name: "GPT3",
-    model: "text-davinci-003",
+    model: "gpt-3.5-turbo-0613",
   },
 };
 export const FILE_ACTIONS: any = {
   SLACK_MERGE: "slack-merge",
+  SLACK_SUMMARY: "slack-summary",
 };
 // Define an object with key-value pairs for different slack action types
 export const SLACK_ACTION_TYPES: { [key: string]: string } = {
@@ -134,6 +133,8 @@ export const ENV: { [key: string]: string } = {
   RESPONSES_TABLE: process.env.responseTable || "",
   SESSSION_TABLE: process.env.SESSION_TABLE || "",
   USER_SESSION_TABLE: process.env.USER_SESSION_TABLE || "",
+  FILE_TOPIC: process.env.FILE_TOPIC || "",
+  ROLE_ARN: "arn:aws:iam::834173211490:role/AdminRole",
 };
 export const REQUEST_ACTIONS: any = {
   INITIATE_CONVERSATION: "initiate_conversation",

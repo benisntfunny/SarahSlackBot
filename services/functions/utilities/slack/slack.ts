@@ -60,16 +60,12 @@ export async function respondToMessage(url: string, text: string) {
  */
 function getOptionsTextFromSettings(optionType: string, value: string) {
   switch (optionType) {
-    case SLACK_ACTION_TYPES.INITIAL_PROMPT:
-      return settingsBlock[0]?.element?.options?.find((option) => {
-        return option.value === value;
-      })?.text.text;
     case SLACK_ACTION_TYPES.CHAT_STYLE_PRESET:
-      return settingsBlock[5]?.accessory?.options?.find((option) => {
+      return settingsBlock[3]?.accessory?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
     case SLACK_ACTION_TYPES.CHAT_MODEL:
-      return settingsBlock[4]?.accessory?.options?.find((option) => {
+      return settingsBlock[2]?.accessory?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
     default:
@@ -161,7 +157,6 @@ function applySettingsBlock(options: any = undefined) {
       options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER] &&
       options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER].length > 0
     ) {
-      console.log(options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER]);
       block[9].elements[0].initial_options = [
         {
           text: {
@@ -413,7 +408,6 @@ export async function replaceMessage(
   thread: string = "",
   text: string = ""
 ) {
-  console.log(channel, thread, text);
   const res = await axios.post(
     SLACK_URLS.UPDATE,
     {
@@ -429,7 +423,6 @@ export async function replaceMessage(
       },
     }
   );
-  console.log(res);
 }
 
 /**

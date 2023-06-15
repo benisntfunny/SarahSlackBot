@@ -28,11 +28,8 @@ export async function getUser(event: any) {
 }
 export async function updateUser(event: any) {
   const { user }: any = getJSONBody(event);
-
   let dbUser: any = await readItemFromDynamoDB(ENV.USER_TABLE, { id: user.id });
-
   dbUser = { ...dbUser, ...user };
-
   await writeToDynamoDB(ENV.USER_TABLE, dbUser);
 
   return success({ user: dbUser });

@@ -5,7 +5,6 @@ import axios from "axios";
 import { DynamoDB } from "aws-sdk";
 import { createRandomFileName } from "./generate";
 import { ENV } from "./static";
-
 // Initialize AWS services
 const dynamoDB = new AWS.DynamoDB();
 const dynamoDb = new DynamoDB.DocumentClient();
@@ -18,7 +17,39 @@ export async function listBucket(Bucket: string, Prefix: string = "") {
     console.log(err);
   }
 }
-
+export async function textExtract(Bucket: string, Name: string) {
+  const textract = new AWS.Textract();
+  const params: any = {
+    Document: {
+      S3Object: {
+        Bucket,
+        Name,
+      },
+    },
+  };
+  const response = await textract.detectDocumentText(params).promise();
+}
+export async function textExtractPDF(Bucket: string, Name: string) {
+  console.log("extract pdf");
+  const textract = new AWS.Textract();
+  const params: any = {
+    DocumentLocation: {
+      S3Object: {
+        Bucket,
+        Name,
+      },
+    },
+    OutputConfig: {
+      S3Bucket: Bucket,
+      S3Prefix: Name + ".SUMMARY",
+    },
+    NotificationChannel: {
+      SNSTopicArn: ENV.FILE_TOPIC,
+      RoleArn: ENV.ROLE_ARN,
+    },
+  };
+  const response = await textract.startDocumentTextDetection(params).promise();
+}
 export async function getFile(Bucket: string, Key: string) {
   return (await s3.getObject({ Bucket, Key }).promise())?.Body;
 }

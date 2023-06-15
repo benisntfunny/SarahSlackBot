@@ -2,7 +2,7 @@
 
 // Import the necessary modules and libraries
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-import { GPT3, dalle } from "../utilities/openai";
+import { dalle } from "../utilities/openai";
 import { queryDalleHistory } from "../utilities/aws";
 import { isAuthorized } from "../utilities/auth";
 import {
@@ -19,6 +19,7 @@ import { OPENAI_MODELS } from "../utilities/static";
  * @param event: any
  * @returns http response
  */
+/*
 export const getGPTAnswer: APIGatewayProxyHandlerV2 = async (event: any) => {
   // Check if the request is authorized
   if (!isAuthorized(event)) {
@@ -44,6 +45,7 @@ export const getGPTAnswer: APIGatewayProxyHandlerV2 = async (event: any) => {
   // Return the GPT-3 response
   return success({ response });
 };
+*/
 
 /**
  * getDALLEAnswer

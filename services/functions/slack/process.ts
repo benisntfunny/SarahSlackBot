@@ -13,7 +13,7 @@ import {
   sendSettingsBlock,
   userLookup,
 } from "../utilities/slack/slack";
-import { dalleS3, GPT3, chatGPT, buildSettingsText } from "../utilities/openai";
+import { dalleS3, chatGPT, buildSettingsText } from "../utilities/openai";
 import { dalleToMC } from "../utilities/sfmc";
 import { successPlain } from "../utilities/responses";
 import {
@@ -88,9 +88,28 @@ export const handler = async (event: any) => {
             role: "system",
             content: instruction,
           },
-          { role: "user", content: text },
+          {
+            role: "user",
+            content: text,
+          },
         ],
-        model
+        model,
+        [
+          {
+            name: "generate_image",
+            description: "Generates an image when a user requests it",
+            parameters: {
+              type: "object",
+              properties: {
+                prompt: {
+                  type: "string",
+                  description: "The text provided to generate an image from",
+                },
+              },
+              required: ["prompt"],
+            },
+          },
+        ]
       );
       await respondToMessage(
         incoming.response_url,
@@ -128,10 +147,16 @@ export const handler = async (event: any) => {
         text: `Upload your files here:\nhttps://chat.mysarah.net/slack/merge/${incoming.user_id}/${urlParts[4]}/${urlParts[5]}/${urlParts[6]}`,
       });
       return successPlain("Success");
+    } else if (incoming.command === SLACK_COMMANDS.SUMMARRY) {
+      const urlParts = incoming.response_url.split("/");
+      await axios.post(incoming.response_url, {
+        text: `Upload your file here:\nhttps://chat.mysarah.net/slack/summarize/${incoming.user_id}/${urlParts[4]}/${urlParts[5]}/${urlParts[6]}`,
+      });
+      return successPlain("Success");
     }
 
     // Process "/settings" command
-    else if (incoming.command === "/settings") {
+    else if (incoming.command === SLACK_COMMANDS.SETTINGS) {
       const userSettings = await readItemFromDynamoDB(ENV.SETTINGS, {
         clientId: incoming.user_id,
         type: SETTINGS_TYPES.BOT_SETTINGS,

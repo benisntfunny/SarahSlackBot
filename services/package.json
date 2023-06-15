@@ -1,17 +1,13 @@
-
 {
-
   "name": "@sarah-bot/services",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "deploy": "npx sst deploy --stage prod"
   },
-  
   "dependencies": {
     "aws-sdk": "^2.1199.0"
   },
-  
   "devDependencies": {
     "@types/aws-lambda": "^8.10.102"
   }

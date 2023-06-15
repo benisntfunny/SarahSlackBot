@@ -24,7 +24,7 @@ async function getKey() {
   return ENV.OPENAI_API_KEY.split(",")[index];
 }
 
-// GPT3 function to create text completion
+/* GPT3 function to create text completion
 export async function GPT3(text: string, model: string): Promise<any> {
   // Initialize the configuration with the API key
   const apiKey = await getKey();
@@ -47,6 +47,7 @@ export async function GPT3(text: string, model: string): Promise<any> {
   // Return the generated text from the response
   return response.data.choices[0].text.replace("\n\n", "\n");
 }
+*/
 
 export async function genericAPIRequest(url: string, body: any = {}) {
   console.log(url, body, {
@@ -67,24 +68,31 @@ export async function genericAPIRequest(url: string, body: any = {}) {
 // Function to process chat messages
 export async function chatGPT(
   messages: any,
-  model: string = OPENAI_MODELS.GPT4.model
+  model: string = OPENAI_MODELS.GPT4.model,
+  functions: any = []
 ): Promise<any> {
   // Send a POST request to the chat completion API
-  const response = await axios.post(
-    OPENAPI_URLS.COMPLETITION,
-    {
+  try {
+    let body: any = {
       model,
       messages,
-    },
-    {
+    };
+    if (functions.length > 0) {
+      body.functions = functions;
+      body.function_call = "auto";
+    }
+    const response = await axios.post(OPENAPI_URLS.COMPLETITION, body, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${await getKey()}`,
       },
-    }
-  );
+    });
+    console.log(response.data.choices[0]);
+    return response.data?.choices[0]?.message?.content;
+  } catch (err: any) {
+    console.log(err?.response?.data);
+  }
   // Return the content of the first message in the response
-  return response.data.choices[0].message.content;
 }
 
 // Function to process chat settings and generate text
