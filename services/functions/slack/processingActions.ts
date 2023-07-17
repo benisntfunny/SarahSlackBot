@@ -162,7 +162,7 @@ export class ProcessingActions {
             required: ["prompt"],
           },
         },
-        /*{
+        {
           name: "sentiment_trigger",
           description:
             "Sends the perceived sentiment level of a user if they are angry, frustrated, upset, manic, any negative sentiment. Still sends a response back to the user",
@@ -189,7 +189,7 @@ export class ProcessingActions {
             },
             required: ["sentiment_type", "content", "reasoning", "keywords"],
           },
-        },*/
+        },
       ]
     );
 
