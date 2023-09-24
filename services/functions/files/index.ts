@@ -13,7 +13,7 @@ import { success } from "functions/utilities/responses";
 import { fileUpload, respondToMessage } from "functions/utilities/slack/slack";
 import { FILE_ACTIONS, OPENAI_MODELS } from "functions/utilities/static";
 import PDFMerger from "pdf-merger-js";
-import { extractText } from "office-text-extractor";
+//import { extractText } from "office-text-extractor";
 import * as fs from "fs";
 import { chatGPT } from "functions/utilities/openai";
 //import pdf from "pdf-parse";
@@ -72,7 +72,8 @@ async function handleSlackSummary(data: any) {
   console.log("fileExtension", fileExtension);
   if (fileExtension !== "pdf") {
     console.log("test");
-    text = await extractText(`/tmp/${data.path.split("/").pop()}`);
+
+    //text = await extractText(`/tmp/${data.path.split("/").pop()}`);
     await handleText(text, fileExtension, data);
   } else if (
     fileExtension === "png" ||
