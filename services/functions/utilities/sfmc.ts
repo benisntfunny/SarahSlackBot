@@ -58,23 +58,29 @@ function buildTagsFromAnalysis(analysis: any) {
  * @param name
  * @returns asset data
  */
-export async function dalleToMC(url: string, name: string) {
-  const analysis = await azureRecognition(url);
-  const tags = buildTagsFromAnalysis(analysis);
-  //Get the image from the URL
-  const imageRes = await axios.get(url, {
-    responseType: "arraybuffer",
-  });
-  //get the current date
-  let now: any = new Date();
-  //convert date into a string
-  now = now.getMonth() + 1 + "-" + now.getDate() + "-" + now.getFullYear();
-  //create a random number for the image name combined with date
-  const imageName = createRandomFileName(now, "png");
-  // encode image as base64
-  const file = Buffer.from(imageRes.data, "base64").toString("base64");
-  //save the asset to SFMC
-  return await saveAsset(name, imageName, file, url, tags);
+export async function imageToMC(
+  url: string,
+  name: string,
+  tags: string[] = []
+) {
+  try {
+    //Get the image from the URL
+    const imageRes = await axios.get(url, {
+      responseType: "arraybuffer",
+    });
+    //get the current date
+    let now: any = new Date();
+    //convert date into a string
+    now = now.getMonth() + 1 + "-" + now.getDate() + "-" + now.getFullYear();
+    //create a random number for the image name combined with date
+    const imageName = createRandomFileName(now, "png");
+    // encode image as base64
+    const file = Buffer.from(imageRes.data, "base64").toString("base64");
+    //save the asset to SFMC
+    return await saveAsset(name, imageName, file, url, tags);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 /**
@@ -141,22 +147,24 @@ export async function categoryListing(
 export async function callMC(method: string, url: string, body: any) {
   //get the token
   const token = await getSFMCToken();
-
-  if (method === "post") {
-    return (
-      await axios.post(`${SFMC_URLS.BASE}${url}`, body, {
+  try {
+    if (method === "post") {
+      const response = await axios.post(`${SFMC_URLS.BASE}${url}`, body, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      })
-    ).data;
-  } else {
-    return (
-      await axios.get(`${SFMC_URLS.BASE}${url}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-    ).data;
+      });
+      return response.data;
+    } else {
+      return (
+        await axios.get(`${SFMC_URLS.BASE}${url}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ).data;
+    }
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -207,7 +215,7 @@ export async function saveAsset(
   try {
     content = await callMC("post", SFMC_URLS.ASSETS, body);
   } catch (err: any) {
-    console.error(err.response?.data);
+    console.error(err);
     //check if the error is because the name is already taken
     const newName = checkNewName(err);
     if (newName) {
@@ -281,4 +289,4 @@ async function getSFMCToken() {
     console.error(err);
     return;
   }
-} 
+}

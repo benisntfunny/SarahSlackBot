@@ -12,7 +12,7 @@ ssm
   .then((data) => {
     fs.writeFile(".env", data.Parameter.Value, (err) => {
       if (err) throw err;
-      console.log(".env created");
+      console.log(".env created for " + parameter);
     });
   })
   .catch((err) => {

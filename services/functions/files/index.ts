@@ -4,14 +4,13 @@ import {
   deleteFile,
   getFile,
   listBucket,
-  saveFile,
   textExtract,
   textExtractPDF,
 } from "functions/utilities/aws";
 import { getJSONBody } from "functions/utilities/events";
 import { success } from "functions/utilities/responses";
 import { fileUpload, respondToMessage } from "functions/utilities/slack/slack";
-import { FILE_ACTIONS, OPENAI_MODELS } from "functions/utilities/static";
+import { FILE_ACTIONS, LLM_MODELS } from "functions/utilities/static";
 import PDFMerger from "pdf-merger-js";
 //import { extractText } from "office-text-extractor";
 import * as fs from "fs";
@@ -105,7 +104,7 @@ async function handleText(input: string, fileExtension: string, data: any) {
           content: text[0],
         },
       ],
-      OPENAI_MODELS.CHAT_GPT.model
+      LLM_MODELS.CHAT_GPT.model
     );
 
     await respondToMessage(data.responseUrl, response);
@@ -124,7 +123,7 @@ async function handleText(input: string, fileExtension: string, data: any) {
             content: input,
           },
         ],
-        OPENAI_MODELS.CHAT_GPT.model
+        LLM_MODELS.CHAT_GPT.model
       );
       summaries += res + "\n";
     }
@@ -139,7 +138,7 @@ async function handleText(input: string, fileExtension: string, data: any) {
           content: summaries,
         },
       ],
-      OPENAI_MODELS.GPT4.model
+      LLM_MODELS.GPT4.model
     );
     await respondToMessage(data.responseUrl, response);
   }

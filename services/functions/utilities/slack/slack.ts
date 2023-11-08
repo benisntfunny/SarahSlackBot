@@ -1,7 +1,13 @@
 /** @format */
 
 import axios from "axios";
-import { ENV, SLACK_ACTION_TYPES, SLACK_URLS, OPENAI_MODELS } from "../static";
+import {
+  ENV,
+  SLACK_ACTION_TYPES,
+  SLACK_URLS,
+  LLM_MODELS,
+  IMAGE_MODELS,
+} from "../static";
 import { settingsBlock, prompt } from "./blocks";
 import FormData from "form-data";
 
@@ -61,11 +67,15 @@ export async function respondToMessage(url: string, text: string) {
 function getOptionsTextFromSettings(optionType: string, value: string) {
   switch (optionType) {
     case SLACK_ACTION_TYPES.CHAT_STYLE_PRESET:
-      return settingsBlock[3]?.accessory?.options?.find((option) => {
+      return settingsBlock[4]?.accessory?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
     case SLACK_ACTION_TYPES.CHAT_MODEL:
       return settingsBlock[2]?.accessory?.options?.find((option) => {
+        return option.value === value;
+      })?.text.text;
+    case SLACK_ACTION_TYPES.IMAGE_MODEL:
+      return settingsBlock[3]?.accessory?.options?.find((option) => {
         return option.value === value;
       })?.text.text;
     default:
@@ -80,16 +90,27 @@ function getOptionsTextFromSettings(optionType: string, value: string) {
 function addInModelTypes() {
   const block: any = settingsBlock;
 
-  for (const [key, value] of Object.entries(OPENAI_MODELS)) {
+  for (const [key, value] of Object.entries(LLM_MODELS)) {
     const option = {
       text: {
         type: "plain_text",
-        text: OPENAI_MODELS[key].name,
+        text: LLM_MODELS[key].name,
         emoji: true,
       },
       value: key,
     };
-    block[4].accessory.options.push(option);
+    if (LLM_MODELS[key].inUse) block[2].accessory.options.push(option);
+  }
+  for (const [key, value] of Object.entries(IMAGE_MODELS)) {
+    const option = {
+      text: {
+        type: "plain_text",
+        text: IMAGE_MODELS[key].name,
+        emoji: true,
+      },
+      value: key,
+    };
+    block[3].accessory.options.push(option);
   }
   return block;
 }
@@ -101,7 +122,6 @@ function addInModelTypes() {
  */
 function applySettingsBlock(options: any = undefined) {
   let block: any[] = addInModelTypes() || [];
-
   if (!options) return block;
   else {
     let text;
@@ -125,7 +145,7 @@ function applySettingsBlock(options: any = undefined) {
         SLACK_ACTION_TYPES.CHAT_STYLE_PRESET,
         options[SLACK_ACTION_TYPES.CHAT_STYLE_PRESET]
       );
-      block[5].accessory["initial_option"] = {
+      block[4].accessory["initial_option"] = {
         text: {
           type: "plain_text",
           text,
@@ -139,7 +159,7 @@ function applySettingsBlock(options: any = undefined) {
         SLACK_ACTION_TYPES.CHAT_MODEL,
         options[SLACK_ACTION_TYPES.CHAT_MODEL]
       );
-      block[4].accessory["initial_option"] = {
+      block[2].accessory["initial_option"] = {
         text: {
           type: "plain_text",
           text,
@@ -148,28 +168,24 @@ function applySettingsBlock(options: any = undefined) {
         value: options[SLACK_ACTION_TYPES.CHAT_MODEL],
       };
     }
+    if (options[SLACK_ACTION_TYPES.IMAGE_MODEL]) {
+      text = getOptionsTextFromSettings(
+        SLACK_ACTION_TYPES.IMAGE_MODEL,
+        options[SLACK_ACTION_TYPES.IMAGE_MODEL]
+      );
+      block[3].accessory["initial_option"] = {
+        text: {
+          type: "plain_text",
+          text,
+          emoji: true,
+        },
+        value: options[SLACK_ACTION_TYPES.IMAGE_MODEL],
+      };
+    }
     if (options[SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE]) {
       text = options[SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE];
 
       block[7].element["initial_value"] = text;
-    }
-    if (
-      options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER] &&
-      options[SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER].length > 0
-    ) {
-      block[9].elements[0].initial_options = [
-        {
-          text: {
-            type: "mrkdwn",
-            text: "*Don't remind about settings*",
-          },
-          description: {
-            type: "mrkdwn",
-            text: "*You won't be reminded about settings when using `Prompt for Images or Chat`.*",
-          },
-          value: SLACK_ACTION_TYPES.NO_SETTINGS_TOGGLE,
-        },
-      ];
     }
   }
   return block;
@@ -301,22 +317,40 @@ export async function sendSettingsEpherealBlock(
 export async function sendMessage(
   channel: string,
   thread: string,
-  text: string = ""
+  text: string = "",
+  model: string = ""
 ) {
-  await axios.post(
-    SLACK_URLS.POST_MESSAGE,
-    {
-      channel: channel,
-      thread_ts: thread,
-      text: text,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${USER_TOKEN}`,
-        "Content-Type": "application/json; charset=utf-8",
+  let payload: any = {
+    channel: channel,
+    thread_ts: thread,
+    blocks: [
+      {
+        type: "section",
+
+        text: {
+          type: "mrkdwn",
+          text: text,
+        },
       },
-    }
-  );
+    ],
+  };
+  if (model) {
+    payload.blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `_${model}_`,
+        },
+      ],
+    });
+  }
+  await axios.post(SLACK_URLS.POST_MESSAGE, payload, {
+    headers: {
+      Authorization: `Bearer ${USER_TOKEN}`,
+      "Content-Type": "application/json; charset=utf-8",
+    },
+  });
 }
 
 /**
@@ -330,20 +364,17 @@ export async function sendBlock(
   thread_ts: string,
   blocks: any = {}
 ) {
-  await axios.post(
-    SLACK_URLS.POST_MESSAGE,
-    {
-      channel,
-      thread_ts,
-      blocks,
+  let body: any = {
+    channel,
+    thread_ts,
+    blocks,
+  };
+  const response = await axios.post(SLACK_URLS.POST_MESSAGE, body, {
+    headers: {
+      Authorization: `Bearer ${USER_TOKEN}`,
+      "Content-Type": "application/json; charset=utf-8",
     },
-    {
-      headers: {
-        Authorization: `Bearer ${USER_TOKEN}`,
-        "Content-Type": "application/json; charset=utf-8",
-      },
-    }
-  );
+  });
 }
 
 /**
@@ -406,7 +437,8 @@ export async function sendImage(
 export async function replaceMessage(
   channel: string = "",
   thread: string = "",
-  text: string = ""
+  text: string = "",
+  blocks
 ) {
   const res = await axios.post(
     SLACK_URLS.UPDATE,
@@ -414,7 +446,7 @@ export async function replaceMessage(
       channel: channel,
       ts: thread,
       text,
-      blocks: [],
+      blocks,
     },
     {
       headers: {
@@ -460,52 +492,6 @@ export async function replaceImage(
     }
   );
 }
-
-/** Sends image or text buttons.
- * @param {string} channel
- * @param {string} thread
- */
-export async function imageOrTextButtons(channel: string, thread: string) {
-  await axios.post(
-    SLACK_URLS.POST_MESSAGE,
-    {
-      channel: channel,
-      thread_ts: thread,
-      attachments: [
-        {
-          text: "What do you want to do?",
-          attachment_type: "default",
-          fallback: "Sorry I'm not working :(",
-          callback_id: "sarah_path",
-          color: "#3AA3E3",
-          actions: [
-            {
-              name: SLACK_ACTION_TYPES.SarahText,
-              text: "Yes",
-              type: "button",
-              style: "primary",
-              value: SLACK_ACTION_TYPES.SarahText,
-            },
-            {
-              name: SLACK_ACTION_TYPES.SarahImage,
-              text: "No",
-              type: "button",
-              style: "primary",
-              value: SLACK_ACTION_TYPES.SarahImage,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${USER_TOKEN}`,
-        "Content-Type": "application/json; charset=utf-8",
-      },
-    }
-  );
-}
-
 /**
  * Get a Slack chat thread by specified channel and message timestamp.
  * @param {string} channel

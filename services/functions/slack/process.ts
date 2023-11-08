@@ -4,32 +4,25 @@
 import axios from "axios";
 import {
   sarahRemover,
-  sendMessage,
-  sendImageWithButtons,
-  replaceImage,
   swapOutIds,
   respondToMessage,
-  sendBlock,
   sendSettingsBlock,
   userLookup,
+  replaceMessage,
 } from "../utilities/slack/slack";
 import { dalleS3, chatGPT, buildSettingsText } from "../utilities/openai";
-import { dalleToMC } from "../utilities/sfmc";
+import { imageToMC } from "../utilities/sfmc";
 import { successPlain } from "../utilities/responses";
 import {
   ENV,
-  OPENAI_MODELS,
+  LLM_MODELS,
   SETTINGS_TYPES,
   SLACK_ACTION_TYPES,
   SLACK_COMMANDS,
   SLACK_TYPES,
 } from "../utilities/static";
-import { addPeriod } from "../utilities/text";
-import {
-  getNewRecord,
-  readItemFromDynamoDB,
-  writeToDynamoDB,
-} from "../utilities/aws";
+import { addPeriod, truncateText } from "../utilities/text";
+import { getNewRecord, readItemFromDynamoDB } from "../utilities/aws";
 import { ProcessingActions } from "./processingActions";
 
 // Define sarahId by replacing "@" with an empty string
@@ -51,16 +44,12 @@ export const handler = async (event: any) => {
     const payload = incoming?.payload || {};
 
     // Process new message, new_image_skip_prompt or reply type events
-    if (
-      incoming?.type === SLACK_TYPES.NEW_MESSAGE ||
-      payload.type === SLACK_TYPES.NEW_MESSAGE_SKIP_PROMPT
-    ) {
+    if (incoming?.type === SLACK_TYPES.NEW_MESSAGE) {
       const pa = new ProcessingActions(payload);
-      await pa.newMessage(payload.type === SLACK_TYPES.NEW_MESSAGE_SKIP_PROMPT);
-    } else if (payload.type === SLACK_TYPES.NEW_IMAGE_SKIP_PROMPT) {
+      await pa.newMessage();
+      /*} else if (payload.type === SLACK_TYPES.NEW_IMAGE_SKIP_PROMPT) {
       const pa = new ProcessingActions(payload);
-      console.log("payload", payload);
-      await pa.newImage();
+      await pa.newImage();*/
     } else if (incoming?.type === SLACK_TYPES.REPLY && payload) {
       const pa = new ProcessingActions(payload, incoming);
       await pa.replyMessage();
@@ -77,11 +66,13 @@ export const handler = async (event: any) => {
           type: SETTINGS_TYPES.BOT_SETTINGS,
         })) || {};
       const model = settings[SLACK_ACTION_TYPES.CHAT_MODEL]
-        ? OPENAI_MODELS[settings[SLACK_ACTION_TYPES.CHAT_MODEL]].model
-        : OPENAI_MODELS.CHAT_GPT.model;
+        ? LLM_MODELS[settings[SLACK_ACTION_TYPES.CHAT_MODEL]].model
+        : LLM_MODELS.CHAT_GPT.model;
       const userName = await userLookup(incoming.user_id);
       const settingsText = await buildSettingsText(settings);
-      const instruction = `${settingsText}. My name is ${userName}. You, the assistant, is named Sarah.`;
+      const instruction = `${
+        settingsText ? settingsText + ". " : ""
+      }My name is ${userName}. You, the assistant, is named Sarah.`;
       const response = await chatGPT(
         [
           {
@@ -154,7 +145,6 @@ export const handler = async (event: any) => {
       });
       return successPlain("Success");
     }
-
     // Process "/settings" command
     else if (incoming.command === SLACK_COMMANDS.SETTINGS) {
       const userSettings = await readItemFromDynamoDB(ENV.SETTINGS, {
@@ -164,65 +154,53 @@ export const handler = async (event: any) => {
       await sendSettingsBlock(incoming.response_url, userSettings);
     }
     // Process add_to_sfmc action
-    else if (incoming.type === SLACK_ACTION_TYPES.ADD_TO_SFMC) {
-      const image: any = await dalleToMC(
-        incoming.payload.original_message.attachments[0].image_url,
-        incoming.payload.original_message.attachments[0].text.replace(
-          /\+/gi,
-          " "
-        )
+    else if (incoming.type === SLACK_ACTION_TYPES.SAVE_TO_MC) {
+      let tags = [];
+      if (incoming.payload.message.blocks.length === 3) {
+        tags = incoming.payload.message.blocks[2].text.text
+          .replace(/\+/gi, "")
+          .replace(/\*/gi, "")
+          .split(",")
+          .map((str) => str.trim());
+      }
+
+      const image: any = await imageToMC(
+        incoming.payload.message.blocks[0].image_url,
+        truncateText(
+          incoming.payload.message.blocks[0].title.text.replace(/\+/gi, " "),
+          30
+        ),
+        tags
       );
-      await replaceImage(
-        incoming.payload.channel.id,
-        incoming.payload.message_ts,
-        incoming.payload.original_message.text,
-        incoming.payload.original_message.attachments[0].image_url
-      );
-      const blocks = [
-        {
+
+      let blocks = incoming.payload.message.blocks;
+      blocks[0].title.text = blocks[0].title.text.replace(/\+/gi, " ");
+      blocks[1] = {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "_Added to Salesforce Marketing Cloud_",
+        },
+      };
+      if (blocks.length === 3) {
+        //fix the tags
+        blocks[2] = {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: "Image added to SFMC",
+            text: blocks[2].text.text
+              .replace(/\+/gi, "")
+              .split(",")
+              .map((str) => str.trim())
+              .join(", "),
           },
-        },
-        {
-          type: "divider",
-        },
-        {
-          type: "section",
-          accessory: {
-            type: "image",
-            image_url:
-              incoming.payload.original_message.attachments[0].image_url,
-            alt_text: `${image.name}`,
-          },
-          text: {
-            type: "mrkdwn",
-            text: `:abc:: ${image.name}\n\n:globe_with_meridians:: ${
-              image.fileProperties.publishedURL
-            }${image.tags ? `\n:label:: ${image.tags.join(", ")}` : ""}`,
-          },
-        },
-      ];
-      await sendBlock(
-        incoming.payload.channel.id,
-        incoming.payload.original_message.thread_ts,
+        };
+      }
+      await replaceMessage(
+        incoming.payload.container.channel_id,
+        incoming.payload.container.message_ts,
+        "",
         blocks
-      );
-    }
-    // Process no_to_sfmc action
-    else if (incoming.type === SLACK_ACTION_TYPES.NO_TO_SFMC) {
-      await replaceImage(
-        incoming.payload.channel.id,
-        incoming.payload.message_ts,
-        incoming.payload.original_message.text,
-        incoming.payload.original_message.attachments[0].image_url
-      );
-      await sendMessage(
-        incoming.payload.channel.id,
-        incoming.payload.original_message.thread_ts,
-        `*Image not added to SFMC*`
       );
     }
   } catch (err) {

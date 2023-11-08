@@ -50,3 +50,10 @@ export function addPeriod(sentence: string = "") {
     return sentence;
   }
 }
+
+export function truncateText(input, length) {
+  if (input.length <= length) {
+    return input;
+  }
+  return input.substring(0, length) + "";
+}

@@ -1,7 +1,3 @@
-/** @format */
-
-// Import isAuthorized function from utilities/auth
-import { isAuthorized } from "./utilities/auth";
 // Import success function for responses from utilities/responses
 import { success } from "./utilities/responses";
 

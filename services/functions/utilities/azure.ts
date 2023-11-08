@@ -5,6 +5,33 @@ import axios from "axios";
 // Import static configuration for Azure Cognitive Services
 import { ENV } from "./static";
 
+export function getObjects(json) {
+  // Initialize as a Set to hold the object names
+  var objectNames = new Set();
+
+  // Check if the input is an object
+  if (typeof json === 'object' && json !== null) {
+      // If it's an object, iterate through its properties
+      for (var key in json) {
+
+          // If a property name is 'object', it's an object name, so add it to the set
+          if (key === 'object' && typeof(json[key]) === 'string') {
+              objectNames.add(json[key]);
+          }
+
+          // If the property's value is an object or array, 
+          // use recursion to check for object names in it
+          if (typeof json[key] === 'object' || Array.isArray(json[key])) {
+              var newObjects = getObjects(json[key]);
+              newObjects.forEach((obj) => objectNames.add(obj));
+          }
+      }
+  }
+
+  // Convert Set to Array before returning
+  return Array.from(objectNames);
+}
+
 /**
  * Function for recognizing properties and objects in an image using Azure Cognitive Services
  * @param {string} url - The URL of the image to be analyzed
@@ -35,7 +62,7 @@ export async function azureRecognition(url: string) {
     // Log any errors encountered in the HTTP request
     console.error(err);
   }
-  
+
   // Return the analysis object containing recognized properties and objects in the image
   return analysis;
 }

@@ -5,7 +5,7 @@
 // Import the necessary packages and modules
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { hashKey } from "../utilities/generate";
-import { success, successPlain } from "../utilities/responses";
+import { successPlain } from "../utilities/responses";
 import { writeToDynamoDB } from "../utilities/aws";
 import { ENV } from "../utilities/static";
 
@@ -31,7 +31,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
   // Generate a hash key for the record
   const key = hashKey();
-  console.log(text);
   // Write the record to the DynamoDB table
   await writeToDynamoDB(ENV.INCOMING_TABLE, {
     referenceId: key,

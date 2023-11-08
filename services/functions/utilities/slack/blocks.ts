@@ -121,6 +121,23 @@ export const settingsBlock = [
     type: "section",
     text: {
       type: "mrkdwn",
+      text: "*Image Model*",
+    },
+    accessory: {
+      type: "static_select",
+      placeholder: {
+        type: "plain_text",
+        text: "Select a model",
+        emoji: true,
+      },
+      options: [],
+      action_id: SLACK_ACTION_TYPES.IMAGE_MODEL,
+    },
+  },
+  {
+    type: "section",
+    text: {
+      type: "mrkdwn",
       text: "*Preset chat style*",
     },
     accessory: {
@@ -207,31 +224,38 @@ export const settingsBlock = [
       emoji: true,
     },
   },
-  // Add a divider
-  {
-    type: "divider",
-  },
-  // Add a checkbox for 'Don't remind about settings'
-  {
-    type: "actions",
-    elements: [
-      {
-        type: "checkboxes",
-        options: [
-          {
-            text: {
-              type: "mrkdwn",
-              text: "*Don't remind about settings*",
-            },
-            description: {
-              type: "mrkdwn",
-              text: "*You won't be reminded about settings when using `Prompt for Images or Chat`.*",
-            },
-            value: SLACK_ACTION_TYPES.NO_SETTINGS_TOGGLE,
-          },
-        ],
-        action_id: SLACK_ACTION_TYPES.NO_SETTINGS_REMINDER,
-      },
-    ],
-  },
 ];
+export const imageBlock = [
+    {
+      type: "image",
+      title: {
+        type: "plain_text",
+        text: "",
+        emoji: true,
+      },
+      image_url: "",
+      alt_text: "",
+    },
+    {
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "Save To Marketing Cloud",
+            emoji: true,
+          },
+          value: "",
+          action_id: "save_to_mc",
+        },
+      ],
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "",
+      },
+    },
+  ]

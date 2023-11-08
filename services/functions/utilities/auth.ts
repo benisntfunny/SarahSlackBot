@@ -12,7 +12,7 @@ import { AUTH_URLS, ENV } from "./static";
  */
 function isSlackRequest(event: any) {
   const json = getJSONBody(event);
-  return json.token && json.api_app_id ? true : false;
+  return (json.token && json.api_app_id ? true : false) || event.requestContext?.http.userAgent === 'Slackbot 1.0 (+https://api.slack.com/robots)';
 }
 
 /**
@@ -31,7 +31,13 @@ export function isAuthorized(event: any) {
       )
     ) {
       return true;
-    } else {
+    } 
+    else if (ENV.SLACK_API_ID?.split(",").indexOf(event?.requestContext?.apiId) > -1)
+    {
+      return true;
+    }
+    
+    else {
       return false;
     }
   }

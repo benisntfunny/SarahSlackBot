@@ -7,8 +7,6 @@ import { getJSONBody } from "../utilities/events";
 import { success, successPlain, unauthorized } from "../utilities/responses";
 import {
   getChatThread,
-  sendImage,
-  sendSettingsBlock,
   sendSettingsEpherealBlock,
 } from "../utilities/slack/slack";
 import {
@@ -75,13 +73,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 // Helper functions to detect add and not-add actions
 function isItAddAction(actions: any) {
   return actions.find((action: any) => {
-    return action.value === SLACK_ACTION_TYPES.ADD_TO_SFMC;
+    return action.action_id === SLACK_ACTION_TYPES.SAVE_TO_MC;
   });
-}
-function isItNotAddAction(actions: any) {
-  return actions.find(
-    (action: any) => action.value === SLACK_ACTION_TYPES.NO_TO_SFMC
-  );
 }
 
 // Responds to a Slack action
@@ -89,16 +82,11 @@ export async function click(event: any) {
   const body = event?.body;
   let json = convertBufferToJSON(body);
   // Write add or not-add actions to DynamoDB
-  if (
-    isItAddAction(json.actions ?? []) ||
-    isItNotAddAction(json.actions ?? [])
-  ) {
+  if (isItAddAction(json.actions ?? [])) {
     await writeToDynamoDB(ENV.INCOMING_TABLE, {
-      referenceId: json.original_message.ts,
+      referenceId: json.container.message_ts,
       time: Date.now(),
-      type: isItAddAction(json.actions ?? [])
-        ? SLACK_ACTION_TYPES.ADD_TO_SFMC
-        : SLACK_ACTION_TYPES.NO_TO_SFMC,
+      type: SLACK_ACTION_TYPES.SAVE_TO_MC,
       payload: json,
       nextTable: ENV.OUTGOING_TABLE,
     });
@@ -122,6 +110,7 @@ export async function click(event: any) {
       SLACK_ACTION_TYPES.CHAT_STYLE_OVERRIDE,
       SLACK_ACTION_TYPES.INITIAL_PROMPT,
       SLACK_ACTION_TYPES.CHAT_MODEL,
+      SLACK_ACTION_TYPES.IMAGE_MODEL,
     ].includes(json.actions[0].action_id)
   ) {
     const userSettings = await readItemFromDynamoDB(ENV.SETTINGS, {

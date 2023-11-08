@@ -1,11 +1,8 @@
 /** @format */
 
-// Import required modules
-import { Configuration, OpenAIApi } from "openai";
 import axios from "axios";
-import { dallUrlToS3, readItemFromDynamoDB, writeToDynamoDB } from "./aws";
-import { dalleToMC } from "./sfmc";
-import { ENV, OPENAI_MODELS, OPENAPI_URLS, SLACK_ACTION_TYPES } from "./static";
+import { imageUrlToS3, readItemFromDynamoDB, writeToDynamoDB } from "./aws";
+import { ENV, LLM_MODELS, OPENAPI_URLS, SLACK_ACTION_TYPES } from "./static";
 
 async function getKey() {
   let index: any = (
@@ -24,39 +21,7 @@ async function getKey() {
   return ENV.OPENAI_API_KEY.split(",")[index];
 }
 
-/* GPT3 function to create text completion
-export async function GPT3(text: string, model: string): Promise<any> {
-  // Initialize the configuration with the API key
-  const apiKey = await getKey();
-  const configuration = new Configuration({
-    apiKey,
-  });
-  // Create an instance of the OpenAIApi
-  const openai = new OpenAIApi(configuration);
-
-  // Send a request to createCompletion with appropriate parameters
-  const response: any = await openai.createCompletion({
-    model,
-    prompt: text,
-    temperature: 0.7,
-    max_tokens: 400,
-    top_p: 1,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-  });
-  // Return the generated text from the response
-  return response.data.choices[0].text.replace("\n\n", "\n");
-}
-*/
-
 export async function genericAPIRequest(url: string, body: any = {}) {
-  console.log(url, body, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${ENV.OPENAI_API_KEY}`,
-    },
-  });
-
   return await axios.post(url, body, {
     headers: {
       "Content-Type": "application/json",
@@ -68,7 +33,7 @@ export async function genericAPIRequest(url: string, body: any = {}) {
 // Function to process chat messages
 export async function chatGPT(
   messages: any,
-  model: string = OPENAI_MODELS.GPT4.model,
+  model: string = LLM_MODELS.GPT4.model,
   functions: any = []
 ): Promise<any> {
   // Send a POST request to the chat completion API
@@ -87,10 +52,72 @@ export async function chatGPT(
         Authorization: `Bearer ${await getKey()}`,
       },
     });
-    console.log(response.data.choices[0]);
     return response.data?.choices[0]?.message?.content;
   } catch (err: any) {
-    console.log(err?.response?.data);
+    console.error("[openai.ts chatGPT]", JSON.stringify(err.config.data));
+  }
+  // Return the content of the first message in the response
+}
+// Function to process chat messages
+export async function visionGPT(
+  messages: any,
+  model: string = LLM_MODELS.GPT4.model,
+  functions: any = []
+): Promise<any> {
+  // Send a POST request to the chat completion API
+  try {
+    let body: any = {
+      model,
+      messages,
+      max_tokens: 1000,
+    };
+    if (functions.length > 0) {
+      body.functions = functions;
+      body.function_call = "auto";
+    }
+    const response = await axios.post(OPENAPI_URLS.COMPLETITION, body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${await getKey()}`,
+      },
+    });
+    return response.data?.choices[0]?.message?.content;
+  } catch (err: any) {
+    console.error("[openai.ts chatGPT]", JSON.stringify(err.config.data));
+  }
+  // Return the content of the first message in the response
+}
+// Function to process chat messages
+export async function chatGPTWithFunctions(
+  messages: any,
+  model: string = LLM_MODELS.GPT4.model,
+  functions: any = []
+): Promise<any> {
+  // Send a POST request to the chat completion API
+  try {
+    let body: any = {
+      model,
+      messages,
+    };
+    if (functions.length > 0) {
+      body.functions = functions;
+      body.function_call = "auto";
+    }
+    const response = await axios.post(OPENAPI_URLS.COMPLETITION, body, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${await getKey()}`,
+      },
+    });
+    if (response.data?.choices[0]?.finish_reason === "function_call") {
+      return JSON.parse(
+        response.data.choices[0].message.function_call.arguments
+      ).prompt;
+    } else {
+      return undefined;
+    }
+  } catch (err: any) {
+    console.error("error", err);
   }
   // Return the content of the first message in the response
 }
@@ -130,47 +157,16 @@ export function buildSettingsText(settings: any) {
   return "";
 }
 
-// Dalle function for image generation
-export async function dalle(
-  text: string,
-  appId: string,
-  size: string = ENV.DEFAULT_IMAGE_SIZE
-): Promise<any> {
-  // Create a JSON object with the required properties
-  const data = JSON.stringify({
-    prompt: text,
-    n: 1,
-    size,
-  });
-
-  // Set the configuration for the axios request
-  var config = {
-    method: "post",
-    url: OPENAPI_URLS.IMAGE_GENERATION,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${await getKey()}`,
-    },
-    data: data,
-  };
-
-  // Make the axios request to generate image
-  const response = await axios(config);
-  const url = response?.data?.data[0]?.url;
-
-  // Upload the generated image to Salesforce Marketing Cloud
-  const uploadDetails = await dalleToMC(url, text);
-  return uploadDetails;
-}
-
 // Function for uploading images to S3
 export async function dalleS3(
   prompt: string,
+  model: string = "dall-e-3",
   appId: string,
   size: string = "1024x1024"
 ): Promise<any> {
   // Create a JSON object with the required properties
   const data = JSON.stringify({
+    model,
     prompt,
     n: 1,
     size,
@@ -192,8 +188,9 @@ export async function dalleS3(
 
   // Extract the image URL from the response
   const url = response?.data?.data[0]?.url;
-
+  const revisedPrompt = response?.data?.data[0]?.revised_prompt;
   // Upload the image to an S3 bucket
-  const uploadDetails = await dallUrlToS3(url, appId, prompt);
-  return uploadDetails;
+
+  const uploadDetails = await imageUrlToS3(url, appId, prompt);
+  return { ...uploadDetails, revised_prompt: revisedPrompt };
 }
